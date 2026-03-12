@@ -269,6 +269,15 @@ gguf-runner/
 2. 查看 llama 的输出日志
 3. 参考官方文档调整参数
 
+## 推荐工作流
+
+对于个人本地使用，推荐以下组合：
+
+- **后端**: `llama.cpp` (llama-server) - 性能最优
+- **前端**: [Cherry Studio](https://github.com/kangfenmao/cherry-studio) - 界面友好，支持多模型管理
+
+相比 Ollama 和 LM Studio，这个组合没有中间层，速度最快，内存占用更低。
+
 ## 许可证
 
 MIT
