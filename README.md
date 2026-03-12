@@ -36,8 +36,8 @@ your-project/
 ### llama 相关资源
 
 - **llama.cpp GitHub**: [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp)
-- **官方文档**: [https://github.com/ggerganov/llama.cpp/tree/master/examples/main](https://github.com/ggerganov/llama.cpp/tree/master/examples/main)
-- **参数说明**: [https://github.com/ggerganov/llama.cpp/blob/master/examples/main/README.md](https://github.com/ggerganov/llama.cpp/blob/master/examples/main/README.md)
+- **官方文档**: [https://github.com/ggerganov/llama.cpp/tree/master/examples](https://github.com/ggerganov/llama.cpp/tree/master/examples)
+- **llama-server 参数说明**: [https://github.com/ggerganov/llama.cpp/blob/master/tools/server/README.md](https://github.com/ggerganov/llama.cpp/blob/master/tools/server/README.md)
 
 **注意**: 如果工具执行出错,建议查看上述链接了解最新的 llama 参数变化。
 
@@ -233,7 +233,7 @@ gguf-runner/
 
 **解决步骤**:
 1. 查看 [llama.cpp 官方文档](https://github.com/ggerganov/llama.cpp) 了解最新参数
-2. 检查 [参数说明](https://github.com/ggerganov/llama.cpp/blob/master/examples/main/README.md) 确认参数格式
+2. 检查 [llama-server 参数说明](https://github.com/ggerganov/llama.cpp/blob/master/tools/server/README.md) 确认参数格式
 3. 在 [Issues](https://github.com/ggerganov/llama.cpp/issues) 中搜索相关问题
 
 ### 其他问题
