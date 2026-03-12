@@ -19,6 +19,32 @@
 - llama已安装并配置到环境变量中
 - 创建 `models/` 目录并放入 `.gguf` 模型文件
 
+### 获取 GGUF 模型
+
+本项目不包含模型文件，您需要自行下载 GGUF 格式的模型放入 `models/` 目录。
+
+**推荐下载源**:
+
+1. **Hugging Face** (官方): https://huggingface.co/
+   - 搜索 `GGUF` 格式的模型，如 `Qwen/Qwen3.5-7B-GGUF`
+   - 使用 `huggingface-cli` 下载:
+     ```bash
+     huggingface-cli download Qwen/Qwen3.5-7B-GGUF qwen3.5-7b-q4_k_m.gguf --local-dir models/
+     ```
+
+2. **Hugging Face 镜像** (国内加速):
+   - 使用 HF-Mirror: https://hf-mirror.com/
+   - 设置镜像环境变量后下载:
+     ```bash
+     set HF_ENDPOINT=https://hf-mirror.com
+     huggingface-cli download Qwen/Qwen3.5-7B-GGUF qwen3.5-7b-q4_k_m.gguf --local-dir models/
+     ```
+
+3. **ModelScope** (阿里魔搭): https://modelscope.cn/
+   - 国内模型仓库，部分模型提供 GGUF 格式
+
+**注意**: 请确保下载的模型文件扩展名为 `.gguf`，并将其放置在 `models/` 目录中。
+
 ### 目录结构
 
 ```
