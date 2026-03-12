@@ -1,0 +1,25 @@
+{
+  "name": "gguf-runner",
+  "version": "1.0.0",
+  "description": "Interactive CLI tool to run GGUF models with llama",
+  "main": "src/index.js",
+  "bin": {
+    "gguf-run": "./bin/gguf-run"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "llama",
+    "gguf",
+    "cli",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.6",
+    "chalk": "^4.1.2"
+  }
+}
