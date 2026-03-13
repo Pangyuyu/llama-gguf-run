@@ -74,9 +74,12 @@ async function runInteractive(options) {
   // 处理 mmproj 路径
   let mmprojPath = null;
   if (options.mmproj) {
+    // 命令行指定的 mmproj，转换为绝对路径
     mmprojPath = path.resolve(options.mmproj);
   } else if (answers.mmproj && answers.mmproj !== 'None') {
-    mmprojPath = path.resolve(modelsDir, answers.mmproj);
+    // 交互式选择的 mmproj，从 mmprojs 目录构建路径
+    const mmprojsDir = path.join(path.dirname(modelsDir), 'mmprojs');
+    mmprojPath = path.resolve(mmprojsDir, answers.mmproj);
   }
 
   const config = {

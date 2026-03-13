@@ -1,3 +1,5 @@
 models/
 node_modules/
 llama-cuda-12/
+mmprojs/
+!mmproj-matcher.json

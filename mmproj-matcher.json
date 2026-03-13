@@ -1,0 +1,11 @@
+{
+  "mmproj": {
+    "default": "mmproj-F16.gguf",
+    "matches": {
+      "Qwen3.5": "mmproj-F16.gguf",
+      "Qwen2-VL": "mmproj-Qwen2-VL.f16.gguf",
+      "LLaVA": "mmproj-llava-f16.gguf",
+      "FireRed": "FireRed-OCR.mmproj-f16.gguf"
+    }
+  }
+}

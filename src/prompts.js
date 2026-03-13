@@ -1,25 +1,7 @@
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs');
-
-/**
- * 扫描目录下的所有.mmproj 文件
- * @param {string} dirPath - 目录路径
- * @returns {string[]} mmproj 文件列表
- */
-function scanMmprojFiles(dirPath) {
-  try {
-    const files = fs.readdirSync(dirPath);
-    const mmprojFiles = files.filter(file => {
-      const ext = path.extname(file).toLowerCase();
-      return ext === '.gguf' && file.toLowerCase().includes('mmproj');
-    });
-    mmprojFiles.sort();
-    return mmprojFiles;
-  } catch (error) {
-    return [];
-  }
-}
+const { getMmprojOptions, matchMmprojToFile } = require('./mmproj-matcher');
 
 /**
  * 构建交互式提示问题列表
@@ -42,16 +24,62 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     });
   }
 
-  // 多模态投影文件选择 (可选)
-  const mmprojFiles = scanMmprojFiles(modelsDir);
-  
+  // 多模态投影文件选择 (可选) - 扫描 mmprojs 目录，支持自动匹配
+  const mmprojsDir = path.join(path.dirname(modelsDir), 'mmprojs');
+  const { files: mmprojFiles } = getMmprojOptions(mmprojsDir, modelsDir, null);
+
   if (mmprojFiles.length > 0) {
     questions.push({
       type: 'list',
       name: 'mmproj',
       message: 'Select a multimodal projection file (optional):',
-      choices: ['None', ...mmprojFiles],
-      default: 'None',
+      choices: (answers) => {
+        // 确定当前选择的模型（命令行指定或交互式选择）
+        const currentModel = options.model || answers.model;
+        if (!currentModel) {
+          // 没有模型时，返回简单列表
+          return ['None', ...mmprojFiles];
+        }
+
+        // 进行自动匹配
+        const matched = matchMmprojToFile(currentModel, [...mmprojFiles]);
+        const choices = [];
+
+        if (matched) {
+          // 自动匹配的排在第一个
+          choices.push({
+            name: `${matched} ⭐ (auto-matched)`,
+            value: matched
+          });
+          // 添加 "None" 选项
+          choices.push({
+            name: 'None',
+            value: 'None'
+          });
+          // 添加其他 mmproj 文件（排除已匹配的）
+          mmprojFiles.forEach(file => {
+            if (file !== matched) {
+              choices.push(file);
+            }
+          });
+        } else {
+          // 没有匹配时，返回简单列表
+          choices.push('None', ...mmprojFiles);
+        }
+
+        return choices;
+      },
+      default: (answers) => {
+        // 确定当前选择的模型
+        const currentModel = options.model || answers.model;
+        if (!currentModel) {
+          return 'None';
+        }
+
+        // 进行自动匹配并返回匹配结果作为默认值
+        const matched = matchMmprojToFile(currentModel, [...mmprojFiles]);
+        return matched || 'None';
+      },
       suffix: chalk.dim(' (for image/video analysis)')
     });
   }
@@ -122,6 +150,5 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
 }
 
 module.exports = {
-  buildPromptQuestions,
-  scanMmprojFiles
+  buildPromptQuestions
 };
