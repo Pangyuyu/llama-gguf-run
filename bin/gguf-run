@@ -64,10 +64,14 @@ async function runInteractive(options) {
 
   // 合并命令行参数和交互式输入
   // 注意：只有当用户通过命令行明确提供参数时才使用命令行值，否则使用交互式输入
-  // 模型路径统一使用 models/ 前缀
+  // 模型路径转换为绝对路径，确保在任何目录运行都能找到模型文件
   const modelFile = options.model || answers.model;
+  const modelPath = options.model 
+    ? path.resolve(modelFile)  // 命令行指定的路径，转换为绝对路径
+    : path.resolve(modelsDir, modelFile);  // 使用扫描得到的 modelsDir 构建绝对路径
+  
   const config = {
-    model: options.model ? modelFile : `models/${modelFile}`,  // 命令行指定则直接使用，否则加 models/前缀
+    model: modelPath,  // 使用绝对路径
     ctxSize: answers.ctxSize,  // 交互式输入优先
     host: answers.host,  // 交互式输入优先
     port: answers.port,  // 交互式输入优先
