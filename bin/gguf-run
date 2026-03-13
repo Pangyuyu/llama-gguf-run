@@ -9,7 +9,7 @@ const { buildPromptQuestions } = require('../src/prompts');
 const { buildLlamaCommand } = require('../src/builder');
 const { runLlama } = require('../src/runner');
 
-// CLI参数定义
+// CLI 参数定义
 program
   .name('gguf-run')
   .description('Interactive CLI tool to run GGUF models with llama')
@@ -33,16 +33,24 @@ program
 async function runInteractive(options) {
   console.log(chalk.bold.cyan('\n🦙 GGUF Model Runner\n'));
 
-  // 1. 扫描GGUF文件(扫描models目录)
-  const modelsDir = path.join(process.cwd(), 'models');
+  // 1. 扫描 GGUF 文件 (扫描 models 目录)
+  // 优先使用当前工作目录的 models，如果不存在则使用包安装目录的 models
+  let modelsDir = path.join(process.cwd(), 'models');
   let ggufFiles = [];
 
   if (!options.model) {
     try {
       ggufFiles = scanGGUFFiles(modelsDir);
     } catch (error) {
-      // 如果models目录不存在或为空,提示用户
-      throw new Error('No "models" directory found or no GGUF files in models/. Please create a "models" directory and put your .gguf files there.');
+      // 如果当前目录没有 models，尝试使用包安装目录的 models
+      try {
+        const packageDir = path.resolve(__dirname, '..');
+        modelsDir = path.join(packageDir, 'models');
+        ggufFiles = scanGGUFFiles(modelsDir);
+      } catch (fallbackError) {
+        // 如果包安装目录也没有 models，提示用户
+        throw new Error('No "models" directory found or no GGUF files in models/. Please create a "models" directory and put your .gguf files there.');
+      }
     }
 
     if (ggufFiles.length === 0) {
@@ -55,11 +63,11 @@ async function runInteractive(options) {
   const answers = await inquirer.prompt(questions);
 
   // 合并命令行参数和交互式输入
-  // 注意: 只有当用户通过命令行明确提供参数时才使用命令行值,否则使用交互式输入
+  // 注意：只有当用户通过命令行明确提供参数时才使用命令行值，否则使用交互式输入
   // 模型路径统一使用 models/ 前缀
   const modelFile = options.model || answers.model;
   const config = {
-    model: options.model ? modelFile : `models/${modelFile}`,  // 命令行指定则直接使用,否则加models/前缀
+    model: options.model ? modelFile : `models/${modelFile}`,  // 命令行指定则直接使用，否则加 models/前缀
     ctxSize: answers.ctxSize,  // 交互式输入优先
     host: answers.host,  // 交互式输入优先
     port: answers.port,  // 交互式输入优先
@@ -69,10 +77,10 @@ async function runInteractive(options) {
 
   // 3. 显示完整命令并确认
   const command = buildLlamaCommand(config);
-  
+
   console.log(chalk.dim('\n📝 Command to execute:'));
   console.log(chalk.green(command));
-  
+
   const { confirmRun } = await inquirer.prompt([
     {
       type: 'confirm',
