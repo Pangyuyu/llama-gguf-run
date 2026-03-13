@@ -36,34 +36,28 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
       choices: (answers) => {
         // 确定当前选择的模型（命令行指定或交互式选择）
         const currentModel = options.model || answers.model;
-        if (!currentModel) {
-          // 没有模型时，返回简单列表
-          return ['None', ...mmprojFiles];
-        }
-
-        // 进行自动匹配
-        const matched = matchMmprojToFile(currentModel, [...mmprojFiles]);
         const choices = [];
 
-        if (matched) {
-          // 自动匹配的排在第一个
-          choices.push({
-            name: `${matched} ⭐ (auto-matched)`,
-            value: matched
-          });
-          // 添加 "None" 选项
-          choices.push({
-            name: 'None',
-            value: 'None'
-          });
-          // 添加其他 mmproj 文件（排除已匹配的）
-          mmprojFiles.forEach(file => {
-            if (file !== matched) {
-              choices.push(file);
-            }
-          });
+        if (currentModel) {
+          // 进行自动匹配
+          const matched = matchMmprojToFile(currentModel, [...mmprojFiles]);
+
+          if (matched) {
+            // 只显示匹配的选项和 None（其他 mmproj 文件不兼容，不显示）
+            choices.push({
+              name: `${matched} ⭐ (auto-matched)`,
+              value: matched
+            });
+            choices.push({
+              name: 'None',
+              value: 'None'
+            });
+          } else {
+            // 没有匹配时，显示所有 mmproj 文件（让用户手动尝试）
+            choices.push('None', ...mmprojFiles);
+          }
         } else {
-          // 没有匹配时，返回简单列表
+          // 没有模型时，返回简单列表
           choices.push('None', ...mmprojFiles);
         }
 

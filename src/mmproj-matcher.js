@@ -159,14 +159,14 @@ function extractModelIdentifiers(modelName) {
  * @returns {string|null} 通用 mmproj 文件名
  */
 function findGenericMmproj(mmprojFiles) {
-  // 优先查找包含 "F16" 的通用投影文件
+  // 只匹配真正通用的投影文件（文件名格式：mmproj-F16.gguf 或 mmproj-FP16.gguf）
+  // 不包含模型系列标识的才是通用文件
   const generic = mmprojFiles.find(f => {
     const name = f.toLowerCase();
-    return name.includes('mmproj-f16') || 
-           name.includes('mmproj-fp16') ||
-           (name.includes('mmproj') && !name.includes('qwen') && !name.includes('llava'));
+    // 通用文件名格式：mmproj-f16.gguf 或 mmproj-fp16.gguf
+    return name === 'mmproj-f16.gguf' || name === 'mmproj-fp16.gguf';
   });
-  
+
   return generic || null;
 }
 
