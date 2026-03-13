@@ -1,22 +1,22 @@
 # GGUF Runner
 
-🦙 一个交互式的命令行工具,用于简化llama运行GGUF模型的操作流程。
+🦙 一个交互式的命令行工具，用于简化 llama 运行 GGUF 模型的操作流程。
 
 ## 功能特性
 
-- ✅ 自动扫描 `models/` 目录下的GGUF模型文件
+- ✅ 自动扫描 `models/` 目录下的 GGUF 模型文件
 - ✅ 交互式选择模型和配置参数
-- ✅ 提供智能默认值(ctx-size=2048, host=127.0.0.1, port=8080)
+- ✅ 提供智能默认值 (ctx-size=2048, host=127.0.0.1, port=8080)
 - ✅ 支持命令行参数覆盖默认值
-- ✅ 允许添加额外的llama参数
+- ✅ 允许添加额外的 llama 参数
 - ✅ 实时显示命令执行过程
 
 ## 安装
 
 ### 前置要求
 
-- Node.js v14或更高版本
-- llama已安装并配置到环境变量中
+- Node.js v14 或更高版本
+- llama 已安装并配置到环境变量中
 - 创建 `models/` 目录并放入 `.gguf` 模型文件
 
 ### 获取 GGUF 模型
@@ -50,9 +50,9 @@
 ```
 your-project/
 ├── bin/
-│   └── gguf-run          # CLI工具
+│   └── gguf-run          # CLI 工具
 ├── src/                  # 源代码
-├── models/                # GGUF模型文件目录 ⭐
+├── models/                # GGUF 模型文件目录 ⭐
 │   ├── model1.gguf
 │   └── model2.gguf
 ├── package.json
@@ -65,7 +65,7 @@ your-project/
 - **官方文档**: [https://github.com/ggerganov/llama.cpp/tree/master/examples](https://github.com/ggerganov/llama.cpp/tree/master/examples)
 - **llama-server 参数说明**: [https://github.com/ggerganov/llama.cpp/blob/master/tools/server/README.md](https://github.com/ggerganov/llama.cpp/blob/master/tools/server/README.md)
 
-**注意**: 如果工具执行出错,建议查看上述链接了解最新的 llama 参数变化。
+**注意**: 如果工具执行出错，建议查看上述链接了解最新的 llama 参数变化。
 
 ### 安装依赖
 
@@ -73,7 +73,7 @@ your-project/
 npm install
 ```
 
-### 全局安装(可选)
+### 全局安装 (可选)
 
 ```bash
 npm link
@@ -93,7 +93,7 @@ npm link
 node bin/gguf-run
 ```
 
-或(如果已全局安装):
+或 (如果已全局安装):
 
 ```bash
 gguf-run
@@ -105,28 +105,29 @@ gguf-run
 gguf-run [options]
 
 选项:
-  -m, --model <file>             GGUF模型文件
-  -c, --ctx-size <size>          上下文大小 (默认: "2048")
-  -H, --host <host>              服务器主机 (默认: "127.0.0.1")
-  -p, --port <port>              服务器端口 (默认: "8080")
-  -l, --llama-command <command>  Llama命令名称 (默认: "llama-server")
-  -e, --extra-args <args>        额外的llama参数
+  -m, --model <file>             GGUF 模型文件
+  -c, --ctx-size <size>          上下文大小 (默认："2048")
+  -H, --host <host>              服务器主机 (默认："127.0.0.1")
+  -p, --port <port>              服务器端口 (默认："8080")
+  -l, --llama-command <command>  Llama 命令名称 (默认："llama-server")
+  -e, --extra-args <args>        额外的 llama 参数
+  -j, --mmproj <file>            多模态投影文件 (.gguf)
   -V, --version                  显示版本号
   -h, --help                     显示帮助信息
 ```
 
 ### 使用示例
 
-#### 1. 交互式运行(推荐)
+#### 1. 交互式运行 (推荐)
 
 ```bash
 gguf-run
 ```
 
 工具会自动:
-1. 扫描当前目录的.gguf文件
+1. 扫描当前目录的.gguf 文件
 2. 显示模型列表供选择
-3. 引导设置参数(显示默认值)
+3. 引导设置参数 (显示默认值)
 4. 确认后执行
 
 #### 2. 指定模型文件
@@ -159,36 +160,105 @@ gguf-run -m qwen-7b.gguf -c 4096 -H 0.0.0.0 -p 8080 -l llama-server -e "--n-gpu-
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| model | GGUF模型文件路径 | 无(交互式选择) |
+| model | GGUF 模型文件路径 | 无 (交互式选择) |
 | ctx-size | 上下文窗口大小 | 2048 |
 | host | 服务器监听地址 | 127.0.0.1 |
 | port | 服务器监听端口 | 8080 |
-| llama-command | Llama命令名称 | llama-server |
+| llama-command | Llama 命令名称 | llama-server |
 
 ### 自动添加的固定参数
 
-以下参数会自动添加到所有命令中(针对本机使用优化):
+以下参数会自动添加到所有命令中 (针对本机使用优化):
 
-- `-np 1`: 设置并行数为1(本机使用)
+- `-np 1`: 设置并行数为 1(本机使用)
 - `--chat-template-kwargs '{"enable_thinking": false}'`: 关闭思考模式
 
-**注意**: JSON参数使用单引号包裹,简单明了,无需复杂转义。
+**注意**: JSON 参数使用单引号包裹，简单明了，无需复杂转义。
 
 ### 常用额外参数
 
-以下是常用的llama额外参数,可通过`-e`选项传递:
+以下是常用的 llama 额外参数，可通过`-e`选项传递:
 
-- `--n-gpu-layers <n>`: GPU加速层数
+- `--n-gpu-layers <n>`: GPU 加速层数
 - `--threads <n>`: 线程数
 - `--batch-size <n>`: 批处理大小
 - `--temp <f>`: 温度参数
-- `--top-p <f>`: Top-p采样
+- `--top-p <f>`: Top-p 采样
 - `--no-mmap`: 禁用内存映射
 
 示例:
 ```bash
 gguf-run -e "--n-gpu-layers 35 --threads 4 --temp 0.7"
 ```
+
+## 多模态支持（图像识别）
+
+llama-server 支持多模态模型，可以识别和分析图像内容。目前支持的模型包括 **Qwen-VL 系列**、**LLaVA 系列**等视觉语言模型。
+
+### 前置要求
+
+1. **多模态模型文件**: 下载支持视觉的 GGUF 模型（如 `Qwen2-VL-7B-Instruct-GGUF`）
+2. **投影文件 (mmproj)**: 对应的多模态投影文件（`.gguf` 格式），用于将图像编码为模型可理解的向量
+
+> **注意**: 模型文件和 mmproj 文件需要匹配使用，通常在同一模型发布页面提供。
+
+### 使用步骤
+
+#### 交互式模式
+
+```bash
+gguf-run -m qwen2-vl-7b-instruct.gguf -j qwen2-vl-mmproj-f16.gguf
+```
+
+工具会引导你配置参数，mmproj 文件路径通过 `-j` 参数指定。
+
+#### 命令行模式
+
+```bash
+gguf-run -m qwen2-vl-7b-instruct.gguf -j qwen2-vl-mmproj-f16.gguf -c 4096 -e "--n-gpu-layers 35"
+```
+
+### 推荐参数
+
+对于多模态模型，建议使用以下参数以获得更好的性能和稳定性：
+
+```bash
+gguf-run -m <model>.gguf -j <mmproj>.gguf --cache-type-k q8_0 --no-mmap
+```
+
+| 参数 | 说明 |
+|------|------|
+| `--cache-type-k q8_0` | 使用 8 位量化存储 KV 缓存，减少显存占用 |
+| `--no-mmap` | 禁用内存映射，避免大模型加载时的内存问题 |
+
+### Cherry Studio 配置说明
+
+如果你使用 **Cherry Studio** 作为前端界面，配置多模态模型时请注意：
+
+1. **后端配置**: 在 Cherry Studio 的设置中，将后端指向 llama-server 运行的地址（如 `http://127.0.0.1:8080`）
+
+2. **模型选择**: 确保 Cherry Studio 中选择的模型与 llama-server 启动时加载的模型一致
+
+3. **图像上传**: Cherry Studio 支持直接上传图片，图片会被发送到 llama-server 进行处理
+
+4. **注意事项**:
+   - 确保启动 llama-server 时正确指定了 `-j` 参数加载 mmproj 文件
+   - 多模态模型需要更多显存，建议预留足够的 GPU 资源
+   - 部分旧版本 Cherry Studio 可能需要手动配置多模态支持
+   - **图片大小限制**: 建议上传图片小于 **1MB**，过大的图片（如 >3MB）可能导致加载失败。如需分析大图，建议先压缩或调整尺寸。
+
+### 完整示例
+
+```bash
+# 启动 Qwen2-VL 多模态模型
+gguf-run -m models/Qwen2-VL-7B-Instruct-Q4_K_M.gguf \
+         -j models/mmproj-Qwen2-VL-7B-f16.gguf \
+         -c 4096 \
+         -p 8080 \
+         -e "--cache-type-k q8_0 --no-mmap --n-gpu-layers 35"
+```
+
+启动后，可以通过 API 或 Cherry Studio 上传图片进行对话。
 
 ## 项目结构
 
@@ -197,10 +267,10 @@ gguf-runner/
 ├── package.json          # 项目配置
 ├── README.md             # 使用说明
 ├── bin/
-│   └── gguf-run          # CLI入口
+│   └── gguf-run          # CLI 入口
 └── src/
-    ├── index.js          # 主程序(未使用,入口在bin/gguf-run)
-    ├── scanner.js        # GGUF文件扫描
+    ├── index.js          # 主程序 (未使用，入口在 bin/gguf-run)
+    ├── scanner.js        # GGUF 文件扫描
     ├── prompts.js        # 交互式提示
     ├── builder.js        # 命令构建
     └── runner.js         # 命令执行
@@ -208,7 +278,7 @@ gguf-runner/
 
 ## 常见问题
 
-### 1. 找不到models目录
+### 1. 找不到 models 目录
 
 **错误信息**: `No "models" directory found or no GGUF files in models/`
 
@@ -216,27 +286,25 @@ gguf-runner/
 - 在项目根目录创建 `models/` 目录
 - 将 `.gguf` 模型文件放入 `models/` 目录中
 
-### 2. 找不到llama命令
+### 2. 找不到 llama 命令
 
 **错误信息**: `llama-server command not found` 或 `llama-cli command not found`
 
-**解决方法**: 
-- 确认llama已正确安装
-- 确认llama-server或llama-cli已添加到系统PATH环境变量中
+**解决方法**:
+- 确认 llama 已正确安装
+- 确认 llama-server 或 llama-cli 已添加到系统 PATH 环境变量中
 - 在终端运行`llama-server --version`验证
-- 如果使用不同的命令名称,使用`-l`参数指定(如`-l llama-cli`)
+- 如果使用不同的命令名称，使用`-l`参数指定 (如`-l llama-cli`)
 
-### 3. models目录中没有GGUF文件
+### 3. models 目录中没有 GGUF 文件
 
 **错误信息**: `No GGUF files found in models/ directory`
 
 **解决方法**:
 - 确认 `models/` 目录中包含 `.gguf` 文件
-- 或使用 `-m` 参数指定模型路径(如 `-m models/model.gguf`)
+- 或使用 `-m` 参数指定模型路径 (如 `-m models/model.gguf`)
 
 ### 4. 端口被占用
-
-### 3. 端口被占用
 
 **错误信息**: 端口占用相关错误
 
@@ -255,7 +323,7 @@ gguf-runner/
 
 ### 参数错误
 
-如果遇到参数相关的错误(如 `parse error` 或 `invalid argument`),可能是 llama 版本更新导致参数变化。
+如果遇到参数相关的错误 (如 `parse error` 或 `invalid argument`),可能是 llama 版本更新导致参数变化。
 
 **解决步骤**:
 1. 查看 [llama.cpp 官方文档](https://github.com/ggerganov/llama.cpp) 了解最新参数
@@ -264,7 +332,7 @@ gguf-runner/
 
 ### 其他问题
 
-如果遇到其他问题,可以:
+如果遇到其他问题，可以:
 1. 手动运行显示的命令进行测试
 2. 查看 llama 的输出日志
 3. 参考官方文档调整参数

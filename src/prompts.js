@@ -1,13 +1,37 @@
+const chalk = require('chalk');
+const path = require('path');
+const fs = require('fs');
+
+/**
+ * 扫描目录下的所有.mmproj 文件
+ * @param {string} dirPath - 目录路径
+ * @returns {string[]} mmproj 文件列表
+ */
+function scanMmprojFiles(dirPath) {
+  try {
+    const files = fs.readdirSync(dirPath);
+    const mmprojFiles = files.filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return ext === '.gguf' && file.toLowerCase().includes('mmproj');
+    });
+    mmprojFiles.sort();
+    return mmprojFiles;
+  } catch (error) {
+    return [];
+  }
+}
+
 /**
  * 构建交互式提示问题列表
  * @param {Object} options - 命令行参数选项
- * @param {string[]} ggufFiles - 可用的GGUF文件列表
- * @returns {Array} Inquirer问题数组
+ * @param {string[]} ggufFiles - 可用的 GGUF 文件列表
+ * @param {string} modelsDir - models 目录路径
+ * @returns {Array} Inquirer 问题数组
  */
-function buildPromptQuestions(options, ggufFiles) {
+function buildPromptQuestions(options, ggufFiles, modelsDir) {
   const questions = [];
 
-  // 模型选择(如果命令行未指定)
+  // 模型选择 (如果命令行未指定)
   if (!options.model) {
     questions.push({
       type: 'list',
@@ -15,6 +39,20 @@ function buildPromptQuestions(options, ggufFiles) {
       message: 'Select a GGUF model:',
       choices: ggufFiles,
       pageSize: 10
+    });
+  }
+
+  // 多模态投影文件选择 (可选)
+  const mmprojFiles = scanMmprojFiles(modelsDir);
+  
+  if (mmprojFiles.length > 0) {
+    questions.push({
+      type: 'list',
+      name: 'mmproj',
+      message: 'Select a multimodal projection file (optional):',
+      choices: ['None', ...mmprojFiles],
+      default: 'None',
+      suffix: chalk.dim(' (for image/video analysis)')
     });
   }
 
@@ -68,23 +106,22 @@ function buildPromptQuestions(options, ggufFiles) {
     name: 'extraArgs',
     message: 'Additional llama arguments (optional):',
     default: options.extraArgs || '',
-    suffix: chalk.dim(' (e.g., --n-gpu-layers 35 --threads 4)')
+    suffix: chalk.dim(' (e.g., --n-gpu-layers 35 --threads 4)\n    \x1b[90mFor image support with Cherry Studio: --cache-type-k q8_0 --no-mmap\x1b[0m')
   });
 
-  // llama命令名称
+  // llama 命令名称
   questions.push({
     type: 'input',
     name: 'llamaCommand',
     message: 'Llama command name:',
     default: options.llamaCommand || 'llama-server',
-    suffix: chalk.dim(' (llama-server, llama-cli, etc.)')
+    suffix: chalk.dim(' (llama-server, llama-cli, llama-mtmd-cli, etc.)\n    \x1b[33mNote: For image analysis with Cherry Studio, use llama-mtmd-cli or llama-server with --mmproj\x1b[0m')
   });
 
   return questions;
 }
 
-const chalk = require('chalk');
-
 module.exports = {
-  buildPromptQuestions
+  buildPromptQuestions,
+  scanMmprojFiles
 };
