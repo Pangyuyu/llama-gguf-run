@@ -164,7 +164,7 @@ gguf-run -m qwen-7b.gguf -c 4096 -H 0.0.0.0 -p 8080 -l llama-server -e "--n-gpu-
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | model | GGUF 模型文件路径 | 无 (交互式选择) |
-| ctx-size | 上下文窗口大小 | 2048 |
+| ctx-size | 上下文窗口大小 | 16384 |
 | host | 服务器监听地址 | 127.0.0.1 |
 | port | 服务器监听端口 | 8080 |
 | llama-command | Llama 命令名称 | llama-server |
@@ -262,6 +262,12 @@ gguf-run -m <model>.gguf -j <mmproj>.gguf --cache-type-k q8_0 --no-mmap
 |------|------|
 | `--cache-type-k q8_0` | 使用 8 位量化存储 KV 缓存，减少显存占用 |
 | `--no-mmap` | 禁用内存映射，避免大模型加载时的内存问题 |
+
+> 💡 **提示：Context Size**
+>
+> 默认 Context Size 为 `16384`，确保多模态图片解析有足够上下文空间。
+>
+> 对于纯文本模式，可以使用 `-c 2048` 或 `--ctx-size 2048` 降低内存占用。
 
 ### Cherry Studio 配置说明
 

@@ -15,7 +15,7 @@ program
   .description('Interactive CLI tool to run GGUF models with llama')
   .option('-m, --model <file>', 'GGUF model file')
   .option('-j, --mmproj <file>', 'Multimodal projection file (.gguf)')
-  .option('-c, --ctx-size <size>', 'Context size', '2048')
+  .option('-c, --ctx-size <size>', 'Context size', '16384')
   .option('-H, --host <host>', 'Server host', '127.0.0.1')
   .option('-p, --port <port>', 'Server port', '8080')
   .option('-l, --llama-command <command>', 'Llama command name', 'llama-server')

@@ -83,7 +83,7 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     type: 'input',
     name: 'ctxSize',
     message: 'Context size:',
-    default: options.ctxSize || '2048',
+    default: options.ctxSize || '16384',  // 默认 16384，确保多模态图片解析有足够上下文
     validate: (input) => {
       const num = parseInt(input);
       if (isNaN(num) || num <= 0) {

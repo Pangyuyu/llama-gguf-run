@@ -73,13 +73,13 @@ function scanMmprojFiles(dirPath) {
  */
 function matchMmprojToFile(modelFile, mmprojFiles) {
   if (!mmprojFiles || mmprojFiles.length === 0) {
-    console.log(`[Match] No mmproj files available`);
+    // console.log(`[Match] No mmproj files available`);
     return null;
   }
 
   const modelName = path.basename(modelFile, '.gguf');
-  console.log(`[Match] Matching model: ${modelName}`);
-  console.log(`[Match] Available mmproj files:`, mmprojFiles);
+  // console.log(`[Match] Matching model: ${modelName}`);
+  // console.log(`[Match] Available mmproj files:`, mmprojFiles);
 
   // 1. 优先使用配置文件匹配
   const config = loadConfig();
