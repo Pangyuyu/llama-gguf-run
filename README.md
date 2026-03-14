@@ -304,24 +304,20 @@ gguf-run -m <model>.gguf -j <mmproj>.gguf --cache-type-k q8_0 --no-mmap
 ```json
 {
   "mmproj": {
-    "default": "mmproj-F16.gguf",
+    "default": "Qwen3.5-35B-A3B-mmproj-F16.gguf",
     "matches": {
-      "mmproj-Qwen3.5-35B-A3B-F16.gguf": [
-        "Qwen3.5-35B-A3B",
-        "Unsloth-Qwen3.5-35B-A3B"
+      "Qwen3.5-35B-A3B-mmproj-BF16.gguf": [
+        "Qwen3.5-35B-A3B-Q4_K_M",
+        "Qwen3.5-35B-A3B-Q5_K_M",
+        "Qwen3.5-35B-A3B-Q8_0",
+        "Unsloth-Qwen3.5-35B-A3B-Q4_K_M"
       ],
-      "mmproj-Qwen3.5-9B-BF16.gguf": [
-        "Qwen3.5-9B"
-      ],
-      "mmproj-Qwen2-VL-F16.gguf": [
-        "Qwen2-VL-7B",
-        "Qwen2-VL-72B"
-      ],
-      "mmproj-llava-f16.gguf": [
-        "LLaVA"
+      "Qwen3.5-9B-mmproj-BF16.gguf": [
+        "Qwen3.5-9B-Q4_K_M",
+        "Qwen3.5-9B-Uncensored-Q4_K_M"
       ],
       "FireRed-OCR.mmproj-f16.gguf": [
-        "FireRed"
+        "FireRed-OCR.Q8_0"
       ]
     }
   }
@@ -331,20 +327,24 @@ gguf-run -m <model>.gguf -j <mmproj>.gguf --cache-type-k q8_0 --no-mmap
 **配置说明**:
 
 - `default`: 默认使用的 mmproj 文件（当没有其他匹配时）
-- `matches`: **mmproj 文件到模型关键词列表**的映射关系
-  - **键**：mmproj 文件名（必须是 `mmprojs/` 目录中实际存在的文件）
-  - **值**：模型关键词数组，模型文件名包含任意一个关键词即匹配成功
+- `matches`: **mmproj 文件到模型文件名列表**的精确映射关系
+  - **键**：mmproj 文件名（必须是 `mmprojs/` 目录中实际存在的文件，不含路径）
+  - **值**：模型文件名数组（不含 `.gguf` 扩展名），必须精确匹配
 
-**设计理由**:
+**匹配规则**:
 
-一个 mmproj 投影文件通常对应**同一参数量的多个不同量化版本**的模型。例如：
-- `mmproj-Qwen3.5-9B-BF16.gguf` 可以用于：
-  - `Qwen3.5-9B-Q4_K_M.gguf`
-  - `Qwen3.5-9B-Q5_K_M.gguf`
-  - `Qwen3.5-9B-Q8_0.gguf`
-  - `Qwen3.5-9B-Uncensored-Q4_K_M.gguf`
+1. **精确匹配**：模型文件名（不含 `.gguf`）必须在配置文件的数组中完全匹配
+2. **匹配成功**：只显示匹配的 mmproj 文件和 `None` 选项
+3. **匹配失败**：显示所有 mmproj 文件供用户手动选择
 
-使用这种结构，只需配置一次，就可以匹配所有同参数量的量化版本，避免重复配置。
+**示例**:
+
+| 模型文件名 | 是否匹配 | 匹配的 mmproj |
+|-----------|---------|--------------|
+| `Qwen3.5-35B-A3B-Q4_K_M.gguf` | ✅ 是 | `Qwen3.5-35B-A3B-mmproj-BF16.gguf` |
+| `Qwen3.5-35B-A3B-Q8_0.gguf` | ✅ 是 | `Qwen3.5-35B-A3B-mmproj-BF16.gguf` |
+| `Qwen3.5-9B-Q4_K_M.gguf` | ✅ 是 | `Qwen3.5-9B-mmproj-BF16.gguf` |
+| `Qwen3.5-7B-Q4_K_M.gguf` | ❌ 否 | 手动选择 |
 
 ### 完整示例
 

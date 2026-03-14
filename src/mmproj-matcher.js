@@ -63,9 +63,8 @@ function scanMmprojFiles(dirPath) {
 /**
  * 根据模型文件名自动匹配 mmproj 文件
  * 匹配规则：
- * 1. 优先使用配置文件中的映射关系（mmproj -> [modelKeywords]）
- * 2. 模型名和 mmproj 文件名包含相同的关键词（如 Qwen3.5）
- * 3. mmproj 文件名包含模型的主要标识
+ * 1. 优先使用配置文件中的精确映射关系（mmproj -> [modelNames]）
+ * 2. 如果没有匹配到，返回 null，让用户手动选择
  *
  * @param {string} modelFile - 模型文件名
  * @param {string[]} mmprojFiles - mmproj 文件列表
@@ -81,98 +80,35 @@ function matchMmprojToFile(modelFile, mmprojFiles) {
   // console.log(`[Match] Matching model: ${modelName}`);
   // console.log(`[Match] Available mmproj files:`, mmprojFiles);
 
-  // 1. 优先使用配置文件匹配（新结构：mmproj -> [keywords]）
+  // 1. 优先使用配置文件精确匹配
   const config = loadConfig();
   if (config && config.mmproj && config.mmproj.matches) {
-    // 遍历配置中的 mmproj 文件及其对应的关键词列表
-    for (const [mmproj, keywords] of Object.entries(config.mmproj.matches)) {
+    // 遍历配置中的 mmproj 文件及其对应的模型名称列表
+    for (const [mmproj, modelNames] of Object.entries(config.mmproj.matches)) {
       // 检查 mmproj 文件是否存在于可用列表中
       if (!mmprojFiles.includes(mmproj)) {
         continue;
       }
-      // 检查模型名是否包含任意一个关键词
-      for (const keyword of keywords) {
-        if (modelName.toLowerCase().includes(keyword.toLowerCase())) {
-          console.log(`✓ Auto-matched: ${modelName} → ${mmproj} (config: ${keyword})`);
-          return mmproj;  // ✅ 配置文件匹配成功，直接返回
-        }
+      // 精确匹配：检查模型名是否在列表中
+      if (modelNames.includes(modelName)) {
+        console.log(`✓ Auto-matched: ${modelName} → ${mmproj} (config)`);
+        return mmproj;  // ✅ 配置文件匹配成功，直接返回
       }
     }
   }
 
-  // 2. 使用文件名关键词匹配（精确匹配）
-  const modelIdentifiers = extractModelIdentifiers(modelName);
-
-  for (const identifier of modelIdentifiers) {
-    for (const mmproj of mmprojFiles) {
-      const mmprojName = path.basename(mmproj, '.gguf').toLowerCase();
-      // 检查 mmproj 文件名是否包含模型的标识
-      if (mmprojName.includes(identifier.toLowerCase())) {
-        console.log(`✓ Auto-matched: ${modelName} → ${mmproj} (keyword: ${identifier})`);
-        return mmproj;
-      }
-    }
-  }
-
-  // 3. 如果没有精确匹配，尝试找通用的 mmproj
-  const genericMmproj = findGenericMmproj(mmprojFiles);
-  if (genericMmproj) {
-    console.log(`✓ Auto-matched: ${modelName} → ${genericMmproj} (generic)`);
-    return genericMmproj;
-  }
-
-  console.log(`✗ No matching mmproj found for: ${modelName}`);
+  // 2. 没有匹配到，返回 null，让用户手动选择
+  console.log(`✗ No matching mmproj found for: ${modelName} (manual selection required)`);
   return null;
 }
 
 /**
- * 从模型名中提取标识符
- * @param {string} modelName - 模型名（不含扩展名）
- * @returns {string[]} 标识符列表
- */
-function extractModelIdentifiers(modelName) {
-  const identifiers = [];
-  
-  // 提取主要模型系列名
-  // 例如：Qwen3.5-35B-A3B-Q4_K_M -> Qwen3.5, Qwen
-  const parts = modelName.split(/[-_]/);
-  
-  // 添加完整的前缀（通常是模型系列名）
-  if (parts.length > 0) {
-    // 添加完整的第一部分（如 Qwen3.5）
-    identifiers.push(parts[0]);
-    
-    // 如果有版本号，添加带版本的（如 Qwen3.5）
-    const versionMatch = parts[0].match(/([A-Za-z]+[\d.]+)/);
-    if (versionMatch) {
-      identifiers.push(versionMatch[1]);
-    }
-    
-    // 添加不带数字的系列名（如 Qwen）
-    const seriesMatch = parts[0].match(/([A-Za-z]+)/);
-    if (seriesMatch) {
-      identifiers.push(seriesMatch[1]);
-    }
-  }
-
-  return [...new Set(identifiers)]; // 去重
-}
-
-/**
- * 查找通用的 mmproj 文件
+ * 查找通用的 mmproj 文件（已废弃）
  * @param {string[]} mmprojFiles - mmproj 文件列表
  * @returns {string|null} 通用 mmproj 文件名
  */
 function findGenericMmproj(mmprojFiles) {
-  // 只匹配真正通用的投影文件（文件名格式：mmproj-F16.gguf 或 mmproj-FP16.gguf）
-  // 不包含模型系列标识的才是通用文件
-  const generic = mmprojFiles.find(f => {
-    const name = f.toLowerCase();
-    // 通用文件名格式：mmproj-f16.gguf 或 mmproj-fp16.gguf
-    return name === 'mmproj-f16.gguf' || name === 'mmproj-fp16.gguf';
-  });
-
-  return generic || null;
+  return null;  // 不再自动查找通用文件
 }
 
 /**
@@ -203,7 +139,6 @@ module.exports = {
   scanMmprojFiles,
   matchMmprojToFile,
   getMmprojOptions,
-  extractModelIdentifiers,
   findGenericMmproj,
   loadConfig,
   setConfigPath,
