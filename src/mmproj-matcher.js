@@ -26,11 +26,11 @@ function getConfigPath() {
  */
 function loadConfig() {
   try {
-    console.log(`[Config] Checking: ${CONFIG_PATH}`);
+    // console.log(`[Config] Checking: ${CONFIG_PATH}`);
     if (fs.existsSync(CONFIG_PATH)) {
       const configData = fs.readFileSync(CONFIG_PATH, 'utf8');
       const config = JSON.parse(configData);
-      console.log(`[Config] Loaded successfully, matches:`, Object.keys(config.mmproj?.matches || {}));
+      // console.log(`[Config] Loaded successfully, matches:`, Object.keys(config.mmproj?.matches || {}));
       return config;
     } else {
       console.log(`[Config] File not found`);
@@ -63,7 +63,7 @@ function scanMmprojFiles(dirPath) {
 /**
  * 根据模型文件名自动匹配 mmproj 文件
  * 匹配规则：
- * 1. 优先使用配置文件中的映射关系
+ * 1. 优先使用配置文件中的映射关系（mmproj -> [modelKeywords]）
  * 2. 模型名和 mmproj 文件名包含相同的关键词（如 Qwen3.5）
  * 3. mmproj 文件名包含模型的主要标识
  *
@@ -81,14 +81,19 @@ function matchMmprojToFile(modelFile, mmprojFiles) {
   // console.log(`[Match] Matching model: ${modelName}`);
   // console.log(`[Match] Available mmproj files:`, mmprojFiles);
 
-  // 1. 优先使用配置文件匹配
+  // 1. 优先使用配置文件匹配（新结构：mmproj -> [keywords]）
   const config = loadConfig();
   if (config && config.mmproj && config.mmproj.matches) {
-    // 检查配置文件中的映射
-    for (const [keyword, mmproj] of Object.entries(config.mmproj.matches)) {
-      if (modelName.toLowerCase().includes(keyword.toLowerCase())) {
-        if (mmprojFiles.includes(mmproj)) {
-          console.log(`✓ Auto-matched: ${modelName} → ${mmproj} (config)`);
+    // 遍历配置中的 mmproj 文件及其对应的关键词列表
+    for (const [mmproj, keywords] of Object.entries(config.mmproj.matches)) {
+      // 检查 mmproj 文件是否存在于可用列表中
+      if (!mmprojFiles.includes(mmproj)) {
+        continue;
+      }
+      // 检查模型名是否包含任意一个关键词
+      for (const keyword of keywords) {
+        if (modelName.toLowerCase().includes(keyword.toLowerCase())) {
+          console.log(`✓ Auto-matched: ${modelName} → ${mmproj} (config: ${keyword})`);
           return mmproj;  // ✅ 配置文件匹配成功，直接返回
         }
       }

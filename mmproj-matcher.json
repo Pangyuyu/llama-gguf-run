@@ -2,10 +2,27 @@
   "mmproj": {
     "default": "Qwen3.5-35B-A3B-mmproj-F16.gguf",
     "matches": {
-      "Qwen3.5-35B-A3B": "Qwen3.5-35B-A3B-mmproj-F16.gguf",
-      "Qwen3.5-9B":"Qwen3.5-9B-mmproj-BF16.gguf",
-      "Qwen3.5-4B":"Qwen3.5-4B-mmproj-BF16.gguf",
-      "FireRed": "FireRed-OCR.mmproj-f16.gguf"
+      "FireRed-OCR.mmproj-f16.gguf": [
+        "FireRed-OCR.Q8_0.gguf"
+      ],
+      "HauhauCS-Qwen3.5-35B-A3B-mmproj-f16.gguf": [
+        "HauhauCS-Qwen3.5-35B-A3B-Q4_K_M.gguf"
+      ],
+      "mmproj-Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16.gguf":[
+        "HauhauCS-Uncensored-Qwen3.5-9B-Q4_K_M.gguf"
+      ],
+      "Qwen3.5-0.8B-BF16.gguf":[
+        "Qwen3.5-0.8B-BF16.gguf"
+      ],
+      "Qwen3.5-4B-Q4_K_M.gguf":[
+        "Qwen3.5-4B-Q4_K_M.gguf"
+      ],
+      "Qwen3.5-9B-Q4_K_M.gguf":[
+        "Qwen3.5-9B-Q4_K_M.gguf"
+      ],
+      "Unsloth-Qwen3.5-35B-A3B-Q4_K_M.gguf":[
+        "Unsloth-Qwen3.5-35B-A3B-Q4_K_M.gguf"
+      ]
     }
   }
 }

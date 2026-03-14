@@ -306,19 +306,45 @@ gguf-run -m <model>.gguf -j <mmproj>.gguf --cache-type-k q8_0 --no-mmap
   "mmproj": {
     "default": "mmproj-F16.gguf",
     "matches": {
-      "Qwen3.5": "mmproj-F16.gguf",
-      "Qwen2-VL": "mmproj-Qwen2-VL.f16.gguf",
-      "LLaVA": "mmproj-llava-f16.gguf",
-      "FireRed": "FireRed-OCR.mmproj-f16.gguf"
+      "mmproj-Qwen3.5-35B-A3B-F16.gguf": [
+        "Qwen3.5-35B-A3B",
+        "Unsloth-Qwen3.5-35B-A3B"
+      ],
+      "mmproj-Qwen3.5-9B-BF16.gguf": [
+        "Qwen3.5-9B"
+      ],
+      "mmproj-Qwen2-VL-F16.gguf": [
+        "Qwen2-VL-7B",
+        "Qwen2-VL-72B"
+      ],
+      "mmproj-llava-f16.gguf": [
+        "LLaVA"
+      ],
+      "FireRed-OCR.mmproj-f16.gguf": [
+        "FireRed"
+      ]
     }
   }
 }
 ```
 
+**配置说明**:
+
 - `default`: 默认使用的 mmproj 文件（当没有其他匹配时）
-- `matches`: 关键词到 mmproj 文件的映射关系
-  - 键：模型文件名中包含的关键词
-  - 值：对应的 mmproj 文件名
+- `matches`: **mmproj 文件到模型关键词列表**的映射关系
+  - **键**：mmproj 文件名（必须是 `mmprojs/` 目录中实际存在的文件）
+  - **值**：模型关键词数组，模型文件名包含任意一个关键词即匹配成功
+
+**设计理由**:
+
+一个 mmproj 投影文件通常对应**同一参数量的多个不同量化版本**的模型。例如：
+- `mmproj-Qwen3.5-9B-BF16.gguf` 可以用于：
+  - `Qwen3.5-9B-Q4_K_M.gguf`
+  - `Qwen3.5-9B-Q5_K_M.gguf`
+  - `Qwen3.5-9B-Q8_0.gguf`
+  - `Qwen3.5-9B-Uncensored-Q4_K_M.gguf`
+
+使用这种结构，只需配置一次，就可以匹配所有同参数量的量化版本，避免重复配置。
 
 ### 完整示例
 
