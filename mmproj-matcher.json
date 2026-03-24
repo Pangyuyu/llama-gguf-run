@@ -11,8 +11,11 @@
       "HauhauCS-Uncensored-Qwen3.5-9B-mmproj-BF16.gguf": [
         "HauhauCS-Uncensored-Qwen3.5-9B-Q4_K_M"
       ],
-      "Qwen3.5-0.8B-mmproj-BF16.gguf": [
+      "Qwen3.5-0.8B-mmproj-F32.gguf": [
         "Qwen3.5-0.8B-BF16"
+      ],
+      "Qwen3.5-2B-Q8_0-mmproj-BF16.gguf": [
+        "Qwen3.5-2B-Q8_0"
       ],
       "Qwen3.5-4B-mmproj-BF16.gguf": [
         "Qwen3.5-4B-Q4_K_M"
@@ -22,6 +25,18 @@
       ],
       "Qwen3.5-35B-A3B-mmproj-BF16.gguf": [
         "Qwen3.5-35B-A3B-Q4_K_M"
+      ],
+      "mmproj-phi-4-reasoning-vision-15b-bf16.gguf":[
+        "ggml-phi-4-reasoning-vision-15b-q4_k"
+      ],
+      "mmproj-GLM-OCR-Q8_0.gguf":[
+        "GLM-OCR-f16"
+      ],
+      "qwen3.5-9b-nsfw-captioning-v2.mmproj-f16.gguf":[
+        "qwen3.5-9b-nsfw-captioning-v2.Q4_K_S"
+      ],
+      "mmproj-Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf":[
+        "Qwen3.5-35B-A3B-Uncensored-Claude-Opus-4.6-Affine.IQ4_XS"
       ]
     }
   }

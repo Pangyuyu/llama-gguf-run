@@ -121,7 +121,7 @@ gguf-run [options]
 
 ### 使用示例
 
-#### 1. 交互式运行 (推荐)
+#### 1.交互式运行 (推荐)  
 
 ```bash
 gguf-run
@@ -133,25 +133,26 @@ gguf-run
 3. 引导设置参数 (显示默认值)
 4. 确认后执行
 
-#### 2. 指定模型文件
+#### 2.指定模型文件  
 
 ```bash
 gguf-run -m model.gguf
-```
+```  
+如上
 
-#### 3. 自定义参数
+#### 3.自定义参数
 
 ```bash
 gguf-run -m model.gguf -c 4096 -H 0.0.0.0 -p 9000
 ```
 
-#### 4. 添加额外参数
+#### 4.添加额外参数
 
 ```bash
 gguf-run -e "--n-gpu-layers 35 --threads 4"
 ```
 
-#### 5. 完整示例
+#### 5.完整示例
 
 ```bash
 gguf-run -m qwen-7b.gguf -c 4096 -H 0.0.0.0 -p 8080 -l llama-server -e "--n-gpu-layers 35 --threads 8"
@@ -377,7 +378,7 @@ gguf-runner/
 
 ## 常见问题
 
-### 1. 找不到 models 目录
+### 1.找不到 models 目录
 
 **错误信息**: `No "models" directory found or no GGUF files in models/`
 
@@ -385,7 +386,7 @@ gguf-runner/
 - 在项目根目录创建 `models/` 目录
 - 将 `.gguf` 模型文件放入 `models/` 目录中
 
-### 2. 找不到 llama 命令
+### 2.找不到 llama 命令
 
 **错误信息**: `llama-server command not found` 或 `llama-cli command not found`
 
@@ -395,7 +396,7 @@ gguf-runner/
 - 在终端运行`llama-server --version`验证
 - 如果使用不同的命令名称，使用`-l`参数指定 (如`-l llama-cli`)
 
-### 3. models 目录中没有 GGUF 文件
+### 3.models 目录中没有 GGUF 文件
 
 **错误信息**: `No GGUF files found in models/ directory`
 
@@ -403,7 +404,7 @@ gguf-runner/
 - 确认 `models/` 目录中包含 `.gguf` 文件
 - 或使用 `-m` 参数指定模型路径 (如 `-m models/model.gguf`)
 
-### 4. 端口被占用
+### 4.端口被占用
 
 **错误信息**: 端口占用相关错误
 
