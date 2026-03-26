@@ -10,13 +10,14 @@ const path = require('path');
  * @param {string} config.extraArgs - 额外参数
  * @param {string} config.llamaCommand - llama 命令名称 (默认 llama-server)
  * @param {string} config.mmproj - 多模态投影文件路径 (可选)
- * @param {boolean} config.multimodal - 是否启用多模态支持 (可选)
+ * @param {boolean} config.enableThinking - 是否启用思考模式 (默认 false)
  * @returns {string} 完整的命令字符串
  */
 function buildLlamaCommand(config) {
   // 使用绝对路径
   const modelPath = config.model;
   const llamaCmd = config.llamaCommand || 'llama-server';
+  const enableThinking = config.enableThinking !== undefined ? config.enableThinking : false;
 
   // 基础命令
   let command = llamaCmd;
@@ -37,7 +38,11 @@ function buildLlamaCommand(config) {
 
   // 固定参数 (本机使用)
   command += ` -np 1`;
-  command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
+
+  // 只有关闭思考模式时才传递参数 (Qwen3.5 默认开启思考模式)
+  if (!enableThinking) {
+    command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
+  }
 
   // 额外参数
   if (config.extraArgs && config.extraArgs.trim() !== '') {
@@ -56,6 +61,7 @@ function buildLlamaArgs(config) {
   // 使用绝对路径
   const modelPath = config.model;
   const llamaCmd = config.llamaCommand || 'llama-server';
+  const enableThinking = config.enableThinking !== undefined ? config.enableThinking : false;
 
   const args = [
     '-m', modelPath,
@@ -74,7 +80,11 @@ function buildLlamaArgs(config) {
 
   // 固定参数 (本机使用)
   args.push('-np', '1');
-  args.push('--chat-template-kwargs', '{"enable_thinking": false}');
+
+  // 只有关闭思考模式时才传递参数 (Qwen3.5 默认开启思考模式)
+  if (!enableThinking) {
+    args.push('--chat-template-kwargs', '{"enable_thinking": false}');
+  }
 
   // 解析额外参数
   if (config.extraArgs && config.extraArgs.trim() !== '') {

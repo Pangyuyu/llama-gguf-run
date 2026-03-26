@@ -95,16 +95,14 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
 
   // Host
   questions.push({
-    type: 'input',
+    type: 'list',
     name: 'host',
     message: 'Server host:',
-    default: options.host || '127.0.0.1',
-    validate: (input) => {
-      if (!input || input.trim() === '') {
-        return 'Host cannot be empty';
-      }
-      return true;
-    }
+    choices: [
+      { name: '127.0.0.1 (localhost only)', value: '127.0.0.1' },
+      { name: '0.0.0.0 (allow external connections)', value: '0.0.0.0' }
+    ],
+    default: options.host ? (options.host === '0.0.0.0' ? 1 : 0) : 0
   });
 
   // Port
@@ -129,6 +127,15 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     message: 'Additional llama arguments (optional):',
     default: options.extraArgs || '',
     suffix: chalk.dim(' (e.g., --n-gpu-layers 35 --threads 4)\n    \x1b[90mFor image support with Cherry Studio: --cache-type-k q8_0 --no-mmap\x1b[0m')
+  });
+
+  // 思考模式 (enable_thinking)
+  questions.push({
+    type: 'confirm',
+    name: 'enableThinking',
+    message: 'Enable thinking mode:',
+    default: options.enableThinking !== undefined ? options.enableThinking : false,
+    suffix: chalk.dim(' (allows the model to think before responding)')
   });
 
   // llama 命令名称
