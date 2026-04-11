@@ -120,6 +120,36 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     }
   });
 
+  // Temperature
+  questions.push({
+    type: 'input',
+    name: 'temp',
+    message: 'Temperature:',
+    default: options.temp || '1.0',
+    validate: (input) => {
+      const num = parseFloat(input);
+      if (isNaN(num) || num < 0) {
+        return 'Please enter a valid non-negative number';
+      }
+      return true;
+    }
+  });
+
+  // Top-P
+  questions.push({
+    type: 'input',
+    name: 'topP',
+    message: 'Top-P sampling:',
+    default: options.topP || '0.95',
+    validate: (input) => {
+      const num = parseFloat(input);
+      if (isNaN(num) || num < 0 || num > 1) {
+        return 'Please enter a valid number between 0 and 1';
+      }
+      return true;
+    }
+  });
+
   // 额外参数
   questions.push({
     type: 'input',
@@ -134,7 +164,7 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     type: 'confirm',
     name: 'enableThinking',
     message: 'Enable thinking mode:',
-    default: options.enableThinking !== undefined ? options.enableThinking : false,
+    default: options.enableThinking !== undefined ? options.enableThinking : true,
     suffix: chalk.dim(' (allows the model to think before responding)')
   });
 

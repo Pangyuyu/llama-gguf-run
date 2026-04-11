@@ -7,17 +7,19 @@ const path = require('path');
  * @param {string} config.ctxSize - 上下文大小
  * @param {string} config.host - 服务器主机
  * @param {string} config.port - 服务器端口
+ * @param {string} config.temp - 温度
+ * @param {string} config.topP - Top-P 采样
  * @param {string} config.extraArgs - 额外参数
  * @param {string} config.llamaCommand - llama 命令名称 (默认 llama-server)
  * @param {string} config.mmproj - 多模态投影文件路径 (可选)
- * @param {boolean} config.enableThinking - 是否启用思考模式 (默认 false)
+ * @param {boolean} config.enableThinking - 是否启用思考模式 (默认 true)
  * @returns {string} 完整的命令字符串
  */
 function buildLlamaCommand(config) {
   // 使用绝对路径
   const modelPath = config.model;
   const llamaCmd = config.llamaCommand || 'llama-server';
-  const enableThinking = config.enableThinking !== undefined ? config.enableThinking : false;
+  const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
 
   // 基础命令
   let command = llamaCmd;
@@ -27,6 +29,8 @@ function buildLlamaCommand(config) {
   command += ` --ctx-size ${config.ctxSize}`;
   command += ` --host ${config.host}`;
   command += ` --port ${config.port}`;
+  command += ` --temp ${config.temp}`;
+  command += ` --top-p ${config.topP}`;
 
   // 多模态投影文件 (如果提供)
   if (config.mmproj) {
@@ -61,13 +65,15 @@ function buildLlamaArgs(config) {
   // 使用绝对路径
   const modelPath = config.model;
   const llamaCmd = config.llamaCommand || 'llama-server';
-  const enableThinking = config.enableThinking !== undefined ? config.enableThinking : false;
+  const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
 
   const args = [
     '-m', modelPath,
     '--ctx-size', config.ctxSize,
     '--host', config.host,
-    '--port', config.port
+    '--port', config.port,
+    '--temp', config.temp,
+    '--top-p', config.topP
   ];
 
   // 多模态投影文件 (如果提供)

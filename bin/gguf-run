@@ -18,9 +18,11 @@ program
   .option('-c, --ctx-size <size>', 'Context size', '16384')
   .option('-H, --host <host>', 'Server host', '127.0.0.1')
   .option('-p, --port <port>', 'Server port', '8080')
+  .option('-T, --temp <temp>', 'Temperature', '1.0')
+  .option('-P, --top-p <top-p>', 'Top-P sampling', '0.95')
   .option('-l, --llama-command <command>', 'Llama command name', 'llama-server')
   .option('-e, --extra-args <args>', 'Additional llama arguments (e.g., "--n-gpu-layers 35 --threads 4")')
-  .option('-t, --enable-thinking', 'Enable thinking mode (default: false)')
+  .option('-t, --enable-thinking', 'Enable thinking mode', true)
   .version('1.0.0')
   .action(async (options) => {
     try {
@@ -89,6 +91,8 @@ async function runInteractive(options) {
     ctxSize: answers.ctxSize,  // 交互式输入优先
     host: answers.host,  // 交互式输入优先
     port: answers.port,  // 交互式输入优先
+    temp: answers.temp,  // 交互式输入优先
+    topP: answers.topP,  // 交互式输入优先
     extraArgs: answers.extraArgs,
     llamaCommand: answers.llamaCommand,
     enableThinking: options.enableThinking ?? answers.enableThinking  // 命令行优先，否则使用交互式选择

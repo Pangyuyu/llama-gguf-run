@@ -2,22 +2,16 @@
   "mmproj": {
     "default": "Qwen3.5-35B-A3B-mmproj-F16.gguf",
     "matches": {
-      "FireRed-OCR.mmproj-f16.gguf": [
-        "FireRed-OCR.Q8_0"
-      ],
-      "HauhauCS-Uncensored-Qwen3.5-9B-mmproj-BF16.gguf": [
-        "HauhauCS-Uncensored-Qwen3.5-9B-Q4_K_M"
-      ],
       "Qwen3.5-35B-A3B-mmproj-BF16.gguf": [
         "Qwen3.5-35B-A3B-Q4_K_M"
       ],
-      "qwen3.5-9b-nsfw-captioning-v2.mmproj-f16.gguf":[
-        "qwen3.5-9b-nsfw-captioning-v2.Q4_K_S"
-      ],
       "mmproj-Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf":[
         "Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_0",
-        "Qwen3.5-35B-A3B-Uncensored-Claude-Opus-4.6-Affine.IQ4_XS",
         "Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_0"
+      ],
+      "gemma-4-26B-A4B-it-mmproj-BF16.gguf":[
+        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q4_K_M",
+        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q8_0"
       ]
     }
   }
