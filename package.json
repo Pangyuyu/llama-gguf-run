@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "bin": {
     "gguf-run": "./bin/gguf-run",
-    "gguf-updater": "./bin/gguf-updater"
+    "gguf-updater": "./bin/gguf-updater",
+    "gguf": "./bin/gguf"
   },
   "scripts": {
     "start": "node src/index.js"

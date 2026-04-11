@@ -1,0 +1,176 @@
+#!/usr/bin/env node
+
+const { program } = require('commander');
+const chalk = require('chalk');
+const inquirer = require('inquirer');
+const { spawn } = require('child_process');
+const path = require('path');
+
+// 子命令定义
+const SUB_COMMANDS = {
+  'run': '启动 GGUF 模型服务器',
+  'updater': '版本更新工具',
+  'check': '检查更新',
+  'version': '查看版本',
+  'download': '显示下载链接',
+  'update': '自动更新',
+  'help': '显示帮助'
+};
+
+program
+  .name('gguf')
+  .description('🦙 GGUF Model Runner - 统一的命令行入口')
+  .version('1.0.0')
+  .option('-m, --menu', '显示交互菜单', false);
+
+// 主菜单
+async function showMainMenu() {
+  console.log(chalk.bold.cyan('\n🦙 GGUF Model Runner\n'));
+  console.log(chalk.dim('选择一个操作:\n'));
+
+  const { action } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'What would you like to do?',
+      choices: [
+        {
+          name: '▶️  启动模型服务器 (gguf-run)',
+          value: 'run'
+        },
+        {
+          name: '📦 检查更新 (gguf-updater check)',
+          value: 'check'
+        },
+        {
+          name: '📥 下载更新 (gguf-updater download)',
+          value: 'download'
+        },
+        {
+          name: '🔄 自动更新 (gguf-updater update)',
+          value: 'update'
+        },
+        {
+          name: 'ℹ️ 查看版本 (gguf-updater version)',
+          value: 'version'
+        },
+        {
+          name: '─' .repeat(40),
+          value: 'separator1',
+          disabled: true
+        },
+        {
+          name: '❌ 退出',
+          value: 'exit'
+        }
+      ],
+      pageSize: 9
+    }
+  ]);
+
+  if (action === 'exit') {
+    console.log(chalk.dim('再见!\n'));
+    return;
+  }
+
+  if (action === 'separator1') {
+    await showMainMenu();
+    return;
+  }
+
+  // 执行选中的命令
+  await executeCommand(action);
+}
+
+// 执行命令
+async function executeCommand(command, args = [], interactive = true) {
+  const binDir = path.dirname(__filename);
+  let cmdPath;
+  let cmdName;
+
+  switch (command) {
+    case 'run':
+      cmdPath = path.join(binDir, 'gguf-run');
+      cmdName = 'gguf-run';
+      break;
+    case 'updater':
+    case 'check':
+    case 'download':
+    case 'update':
+    case 'version':
+      cmdPath = path.join(binDir, 'gguf-updater');
+      cmdName = 'gguf-updater';
+      if (command !== 'updater') {
+        args.unshift(command);
+      }
+      break;
+    default:
+      console.error(chalk.red(`Unknown command: ${command}`));
+      return;
+  }
+
+  // 执行命令
+  const child = spawn('node', [cmdPath, ...args], {
+    stdio: 'inherit',
+    shell: false
+  });
+
+  child.on('close', (code) => {
+    if (code === 0 && command !== 'exit') {
+      // 只有在交互模式下才询问返回菜单
+      if (interactive) {
+        askReturnToMenu();
+      }
+    }
+  });
+}
+
+// 询问是否返回主菜单
+async function askReturnToMenu() {
+  console.log();
+  const { returnToMenu } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'returnToMenu',
+      message: '返回主菜单？',
+      default: true
+    }
+  ]);
+
+  if (returnToMenu) {
+    await showMainMenu();
+  } else {
+    console.log(chalk.dim('再见!\n'));
+  }
+}
+
+// 快速命令模式（不返回菜单）
+async function runQuickCommand(command) {
+  const args = process.argv.slice(3); // 获取额外的命令行参数
+  await executeCommand(command, args, false); // interactive = false
+}
+
+// 解析命令行
+program
+  .argument('[command]', '快速命令 (run|check|download|update|version)')
+  .action(async (command) => {
+    const options = program.opts();
+
+    // 如果有 -m/--menu 参数，或者没有指定命令，显示主菜单
+    if (options.menu || !command) {
+      await showMainMenu();
+    } else {
+      // 执行快速命令
+      const validCommands = ['run', 'check', 'download', 'update', 'version'];
+      if (validCommands.includes(command)) {
+        await runQuickCommand(command);
+      } else {
+        console.error(chalk.red(`Unknown command: ${command}`));
+        console.log(chalk.dim('\n可用命令：run, check, download, update, version'));
+        console.log(chalk.dim('或使用 ') + chalk.cyan('gguf -m') + chalk.dim(' 显示交互菜单\n'));
+        process.exit(1);
+      }
+    }
+  });
+
+program.parse();

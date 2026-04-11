@@ -50,7 +50,8 @@
 ```
 your-project/
 ├── bin/
-│   ├── gguf-run          # CLI 工具
+│   ├── gguf              # 统一入口命令 ⭐ 推荐
+│   ├── gguf-run          # 启动模型服务器
 │   └── gguf-updater      # 版本更新工具
 ├── src/                  # 源代码
 ├── llama-cuda-12/         # llama.cpp CUDA 12 二进制文件 ⭐
@@ -86,13 +87,52 @@ npm link
 
 安装后可以在任意目录使用`gguf-run`命令。
 
+## 统一入口命令 (推荐)
+
+为了方便使用，可以使用 `gguf` 统一入口命令，支持交互菜单和快速命令两种模式。
+
+### 交互菜单模式
+
+```bash
+# 显示交互菜单
+gguf -m
+# 或者
+gguf
+```
+
+菜单选项：
+- ▶️  启动模型服务器
+- 📦 检查更新
+- 📥 下载更新
+- 🔄 自动更新
+- ℹ️ 查看版本
+
+### 快速命令模式
+
+```bash
+# 启动模型
+gguf run
+
+# 检查更新
+gguf check
+
+# 下载更新
+gguf download
+
+# 自动更新
+gguf update
+
+# 查看版本
+gguf version
+```
+
 ## llama.cpp 自动更新
 
 ### 为什么需要更新？
 
 llama.cpp 项目更新频繁，经常有新功能和性能优化。使用 `gguf-updater` 工具可以轻松检查和更新本地的 llama.cpp 二进制文件。
 
-### 使用方法
+### 独立命令使用
 
 ```bash
 # 检查可用更新
