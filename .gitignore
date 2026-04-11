@@ -4,3 +4,4 @@ llama-cuda-12/
 mmprojs/
 !mmproj-matcher.json
 prism-llama-cuda
+.qwen/

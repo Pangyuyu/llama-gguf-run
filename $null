@@ -1,0 +1,7 @@
+ggml_cuda_init: found 1 CUDA devices (Total VRAM: 8187 MiB):
+  Device 0: NVIDIA GeForce RTX 4060 Laptop GPU, compute capability 8.9, VMM: yes, VRAM: 8187 MiB
+load_backend: loaded CUDA backend from D:\coding-vibe\AI-GGUF-RUNING\llama-cuda-12\ggml-cuda.dll
+load_backend: loaded RPC backend from D:\coding-vibe\AI-GGUF-RUNING\llama-cuda-12\ggml-rpc.dll
+load_backend: loaded CPU backend from D:\coding-vibe\AI-GGUF-RUNING\llama-cuda-12\ggml-cpu-alderlake.dll
+version: 8756 (b136b62cf)
+built with Clang 19.1.5 for Windows x86_64

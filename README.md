@@ -50,8 +50,10 @@
 ```
 your-project/
 ├── bin/
-│   └── gguf-run          # CLI 工具
+│   ├── gguf-run          # CLI 工具
+│   └── gguf-updater      # 版本更新工具
 ├── src/                  # 源代码
+├── llama-cuda-12/         # llama.cpp CUDA 12 二进制文件 ⭐
 ├── models/                # GGUF 模型文件目录 ⭐
 │   ├── model1.gguf
 │   └── model2.gguf
@@ -83,6 +85,69 @@ npm link
 ```
 
 安装后可以在任意目录使用`gguf-run`命令。
+
+## llama.cpp 自动更新
+
+### 为什么需要更新？
+
+llama.cpp 项目更新频繁，经常有新功能和性能优化。使用 `gguf-updater` 工具可以轻松检查和更新本地的 llama.cpp 二进制文件。
+
+### 使用方法
+
+```bash
+# 检查可用更新
+gguf-updater check
+
+# 查看当前版本
+gguf-updater version
+
+# 显示手动下载链接（推荐，可手动下载后解压）
+gguf-updater download
+
+# 自动更新（会提示确认）
+gguf-updater update
+
+# 静默更新（无需确认）
+gguf-updater update -y
+```
+
+### 更新流程
+
+1. **检查版本** - 从 GitHub 获取最新 release 版本
+2. **对比版本** - 与本地 `.version` 文件记录的版本号对比
+3. **下载安装** - 下载 CUDA 12.4 Windows x64 二进制包并解压到 `llama-cuda-12/` 目录
+4. **记录版本** - 更新完成后保存新版本号
+
+**注意**: 更新会覆盖 `llama-cuda-12/` 目录中的所有文件，请确保没有存放其他自定义文件。
+
+### 自定义安装目录
+
+```bash
+gguf-updater check -d /path/to/your/llama-binaries
+gguf-updater update -d /path/to/your/llama-binaries
+```
+
+### 下载源
+
+默认下载 GitHub 最新 release 中的 `llama-*.zip` 文件（包含完整的 llama.cpp 二进制）。
+
+### 代理支持
+
+如果下载速度慢，可以配置 HTTP/HTTPS 代理：
+
+**PowerShell:**
+```powershell
+$env:HTTP_PROXY="http://127.0.0.1:7897"
+$env:HTTPS_PROXY="http://127.0.0.1:7897"
+gguf-updater download
+```
+
+**CMD:**
+```cmd
+set HTTP_PROXY=http://127.0.0.1:7897
+set HTTPS_PROXY=http://127.0.0.1:7897
+gguf-updater download
+```
 
 ## 使用方法
 
