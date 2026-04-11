@@ -11,6 +11,32 @@
 - ✅ 允许添加额外的 llama 参数
 - ✅ 实时显示命令执行过程
 
+## 快速开始
+
+### 统一入口命令（推荐）
+
+```bash
+gguf
+```
+
+![gguf 主菜单](images/gguf.png)
+
+### 启动模型服务器
+
+```bash
+gguf run
+```
+
+![gguf run](images/gguf-run.png)
+
+### 检查更新
+
+```bash
+gguf check
+```
+
+![gguf check](images/gguf-check.png)
+
 ## 安装
 
 ### 前置要求
