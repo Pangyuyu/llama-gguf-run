@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs');
 const { getMmprojOptions, matchMmprojToFile } = require('./mmproj-matcher');
+const { calculateRecommendedLayers, getGPULayersModeOptions } = require('./gpu-estimator');
 
 /**
  * 构建交互式提示问题列表
@@ -23,6 +24,9 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
       pageSize: 10
     });
   }
+
+  // GPU 层数模式选择 - 在模型选择之后，动态计算推荐值
+  // 注意：由于需要在用户选择模型后计算，我们在 mmproj 选择之后添加 GPU 层数问题
 
   // 多模态投影文件选择 (可选) - 扫描 mmprojs 目录，支持自动匹配
   const mmprojsDir = path.join(path.dirname(modelsDir), 'mmprojs');
@@ -83,7 +87,7 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     type: 'input',
     name: 'ctxSize',
     message: 'Context size:',
-    default: options.ctxSize || '16384',  // 默认 16384，确保多模态图片解析有足够上下文
+    default: options.ctxSize || '32768',  // 默认 32K，针对稀疏模型优化，对速度影响不大
     validate: (input) => {
       const num = parseInt(input);
       if (isNaN(num) || num <= 0) {
@@ -150,12 +154,42 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     }
   });
 
+  // GPU 层数模式选择
+  questions.push({
+    type: 'list',
+    name: 'gpuLayersMode',
+    message: 'GPU layers offload mode:',
+    choices: [
+      { name: 'Auto (llama.cpp 自动分配)', value: 'auto', description: '让 llama.cpp 自动决定 GPU 层数' },
+      { name: 'Calculated (根据 VRAM 计算)', value: 'calculated', description: '根据模型大小和可用 VRAM 自动计算最优层数' },
+      { name: 'Manual (手动设置)', value: 'manual', description: '手动指定 GPU 层数' }
+    ],
+    default: options.gpuLayersMode || 'auto'
+  });
+
+  // GPU 层数手动设置（仅当选择 Manual 模式时显示）
+  questions.push({
+    type: 'input',
+    name: 'gpuLayers',
+    message: 'Number of GPU layers (-ngl):',
+    default: options.gpuLayers || '99',
+    when: (answers) => answers.gpuLayersMode === 'manual',
+    validate: (input) => {
+      const num = parseInt(input);
+      if (isNaN(num) || num < 0) {
+        return 'Please enter a valid non-negative number';
+      }
+      return true;
+    },
+    suffix: chalk.dim(' (99 = all layers, 0 = CPU only)')
+  });
+
   // 额外参数
   questions.push({
     type: 'input',
     name: 'extraArgs',
     message: 'Additional llama arguments (optional):',
-    default: options.extraArgs || '',
+    default: options.extraArgs || '-b 1024 -ub 128 -t 14 -fa auto',
     suffix: chalk.dim(' (e.g., --n-gpu-layers 35 --threads 4)\n    \x1b[90mFor image support with Cherry Studio: --cache-type-k q8_0 --no-mmap\x1b[0m')
   });
 

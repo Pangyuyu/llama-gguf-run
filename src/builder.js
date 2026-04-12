@@ -1,4 +1,5 @@
 const path = require('path');
+const { calculateRecommendedLayers } = require('./gpu-estimator');
 
 /**
  * 构建 llama 命令字符串
@@ -13,13 +14,16 @@ const path = require('path');
  * @param {string} config.llamaCommand - llama 命令名称 (默认 llama-server)
  * @param {string} config.mmproj - 多模态投影文件路径 (可选)
  * @param {boolean} config.enableThinking - 是否启用思考模式 (默认 true)
- * @returns {string} 完整的命令字符串
+ * @param {string} config.gpuLayersMode - GPU 层数模式：'auto', 'calculated', 'manual'
+ * @param {number} config.gpuLayers - GPU 层数（手动模式）
+ * @returns {Promise<string>} 完整的命令字符串
  */
-function buildLlamaCommand(config) {
+async function buildLlamaCommand(config) {
   // 使用绝对路径
   const modelPath = config.model;
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
+  const gpuLayersMode = config.gpuLayersMode || 'auto';
 
   // 基础命令
   let command = llamaCmd;
@@ -48,9 +52,38 @@ function buildLlamaCommand(config) {
     command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
   }
 
+  // 处理 GPU 层数
+  let nglValue = '';
+  if (gpuLayersMode === 'auto') {
+    // Auto 模式：不设置 -ngl，让 llama.cpp 自动决定
+    nglValue = '';
+  } else if (gpuLayersMode === 'calculated') {
+    // Calculated 模式：根据模型计算
+    try {
+      const result = await calculateRecommendedLayers(modelPath, { availableVRAM: 6.5 });
+      nglValue = result.recommendedLayers.toString();
+      command += ` # GPU: ${result.recommendedLayers}/${result.totalLayers} layers (${result.quantType}, ~${result.modelSizeGB}GB)`;
+    } catch (error) {
+      console.warn(`[GPU Estimator] Calculation failed: ${error.message}, using auto`);
+      nglValue = '';
+    }
+  } else if (gpuLayersMode === 'manual') {
+    // Manual 模式：使用用户指定的值
+    nglValue = config.gpuLayers || '99';
+  }
+
+  // 添加 -ngl 参数（如果有值）
+  if (nglValue !== '') {
+    command += ` -ngl ${nglValue}`;
+  }
+
   // 额外参数
   if (config.extraArgs && config.extraArgs.trim() !== '') {
-    command += ` ${config.extraArgs.trim()}`;
+    // 移除额外参数中可能重复的 -ngl
+    const cleanedExtraArgs = config.extraArgs.trim().replace(/-ngl\s+\d+/g, '').trim();
+    if (cleanedExtraArgs) {
+      command += ` ${cleanedExtraArgs}`;
+    }
   }
 
   return command;
@@ -59,13 +92,14 @@ function buildLlamaCommand(config) {
 /**
  * 构建命令参数数组 (用于 spawn)
  * @param {Object} config - 配置对象
- * @returns {Object} {command: string, args: string[]}
+ * @returns {Promise<Object>} {command: string, args: string[], gpuInfo: string}
  */
-function buildLlamaArgs(config) {
+async function buildLlamaArgs(config) {
   // 使用绝对路径
   const modelPath = config.model;
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
+  const gpuLayersMode = config.gpuLayersMode || 'auto';
 
   const args = [
     '-m', modelPath,
@@ -92,15 +126,49 @@ function buildLlamaArgs(config) {
     args.push('--chat-template-kwargs', '{"enable_thinking": false}');
   }
 
+  // 处理 GPU 层数
+  let nglValue = '';
+  let gpuInfo = '';
+  if (gpuLayersMode === 'auto') {
+    // Auto 模式：不设置 -ngl，让 llama.cpp 自动决定
+    nglValue = '';
+    gpuInfo = 'GPU: auto';
+  } else if (gpuLayersMode === 'calculated') {
+    // Calculated 模式：根据模型计算
+    try {
+      const result = await calculateRecommendedLayers(modelPath, { availableVRAM: 6.5 });
+      nglValue = result.recommendedLayers.toString();
+      gpuInfo = `GPU: ${result.recommendedLayers}/${result.totalLayers} layers (${result.quantType}, ~${result.modelSizeGB}GB)`;
+    } catch (error) {
+      console.warn(`[GPU Estimator] Calculation failed: ${error.message}, using auto`);
+      nglValue = '';
+      gpuInfo = 'GPU: auto (fallback)';
+    }
+  } else if (gpuLayersMode === 'manual') {
+    // Manual 模式：使用用户指定的值
+    nglValue = config.gpuLayers || '99';
+    gpuInfo = `GPU: ${nglValue} layers (manual)`;
+  }
+
+  // 添加 -ngl 参数（如果有值）
+  if (nglValue !== '') {
+    args.push('-ngl', nglValue);
+  }
+
   // 解析额外参数
   if (config.extraArgs && config.extraArgs.trim() !== '') {
-    const extraParts = config.extraArgs.trim().split(/\s+/);
-    args.push(...extraParts);
+    // 移除额外参数中可能重复的 -ngl
+    const cleanedExtraArgs = config.extraArgs.trim().replace(/-ngl\s+\d+/g, '').trim();
+    if (cleanedExtraArgs) {
+      const extraParts = cleanedExtraArgs.split(/\s+/);
+      args.push(...extraParts);
+    }
   }
 
   return {
     command: llamaCmd,
-    args: args
+    args: args,
+    gpuInfo
   };
 }
 

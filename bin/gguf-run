@@ -15,7 +15,7 @@ program
   .description('Interactive CLI tool to run GGUF models with llama')
   .option('-m, --model <file>', 'GGUF model file')
   .option('-j, --mmproj <file>', 'Multimodal projection file (.gguf)')
-  .option('-c, --ctx-size <size>', 'Context size', '16384')
+  .option('-c, --ctx-size <size>', 'Context size', '32768')
   .option('-H, --host <host>', 'Server host', '127.0.0.1')
   .option('-p, --port <port>', 'Server port', '8080')
   .option('-T, --temp <temp>', 'Temperature', '1.0')
@@ -23,6 +23,8 @@ program
   .option('-l, --llama-command <command>', 'Llama command name', 'llama-server')
   .option('-e, --extra-args <args>', 'Additional llama arguments (e.g., "--n-gpu-layers 35 --threads 4")')
   .option('-t, --enable-thinking', 'Enable thinking mode', true)
+  .option('--gpu-layers-mode <mode>', 'GPU layers mode: auto, calculated, manual', 'auto')
+  .option('--gpu-layers <count>', 'Number of GPU layers (for manual mode)', '99')
   .version('1.0.0')
   .action(async (options) => {
     try {
@@ -93,13 +95,15 @@ async function runInteractive(options) {
     port: answers.port,  // 交互式输入优先
     temp: answers.temp,  // 交互式输入优先
     topP: answers.topP,  // 交互式输入优先
+    gpuLayersMode: options.gpuLayersMode || answers.gpuLayersMode,  // GPU 层数模式
+    gpuLayers: options.gpuLayers || answers.gpuLayers,  // GPU 层数（手动模式）
     extraArgs: answers.extraArgs,
     llamaCommand: answers.llamaCommand,
     enableThinking: options.enableThinking ?? answers.enableThinking  // 命令行优先，否则使用交互式选择
   };
 
   // 3. 显示完整命令并确认
-  const command = buildLlamaCommand(config);
+  const command = await buildLlamaCommand(config);
 
   console.log(chalk.dim('\n📝 Command to execute:'));
   console.log(chalk.green(command));

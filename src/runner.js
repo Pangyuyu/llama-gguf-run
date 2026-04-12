@@ -7,9 +7,10 @@ const { buildLlamaArgs } = require('./builder');
  * @param {Object} config - 配置对象
  * @returns {Promise<void>}
  */
-function runLlama(config) {
-  return new Promise((resolve, reject) => {
-    const { command, args } = buildLlamaArgs(config);
+async function runLlama(config) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { command, args, gpuInfo } = await buildLlamaArgs(config);
     
     // 构建显示用的命令字符串(正确处理引号)
     const displayArgs = args.map(arg => {
@@ -19,8 +20,10 @@ function runLlama(config) {
       }
       return arg;
     }).join(' ');
-    
-    console.log(chalk.dim(`Executing: ${command} ${displayArgs}\n`));
+      if (gpuInfo) {
+        console.log(chalk.dim(`[${gpuInfo}]\n`));
+      }
+      console.log(chalk.dim(`Executing: ${command} ${displayArgs}\n`));
     
     // 使用spawn启动子进程
     // 注意: 不使用shell: true,直接传递参数数组,避免转义问题
@@ -49,11 +52,14 @@ function runLlama(config) {
       }
     });
     
-    // 处理中断信号
-    process.on('SIGINT', () => {
-      console.log(chalk.yellow('\n\nStopping llama...'));
-      llamaProcess.kill('SIGINT');
-    });
+      // 处理中断信号
+      process.on('SIGINT', () => {
+        console.log(chalk.yellow('\n\nStopping llama...'));
+        llamaProcess.kill('SIGINT');
+      });
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
