@@ -94,7 +94,8 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
         return 'Please enter a valid positive number';
       }
       return true;
-    }
+    },
+    suffix: chalk.dim(' (16384 = 16K, 32768 = 32K; larger = more VRAM for KV cache)')
   });
 
   // Host

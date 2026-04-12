@@ -1,5 +1,5 @@
 const path = require('path');
-const { calculateRecommendedLayers } = require('./gpu-estimator');
+const { calculateRecommendedLayers, estimateFromFileName } = require('./gpu-estimator');
 
 /**
  * 构建 llama 命令字符串
@@ -16,7 +16,7 @@ const { calculateRecommendedLayers } = require('./gpu-estimator');
  * @param {boolean} config.enableThinking - 是否启用思考模式 (默认 true)
  * @param {string} config.gpuLayersMode - GPU 层数模式：'auto', 'calculated', 'manual'
  * @param {number} config.gpuLayers - GPU 层数（手动模式）
- * @returns {Promise<string>} 完整的命令字符串
+ * @returns {Promise<Object>} {command: string, gpuInfo: string}
  */
 async function buildLlamaCommand(config) {
   // 使用绝对路径
@@ -54,26 +54,33 @@ async function buildLlamaCommand(config) {
 
   // 处理 GPU 层数
   let nglValue = '';
+  let gpuInfo = '';
+
   if (gpuLayersMode === 'auto') {
     // Auto 模式：不设置 -ngl，让 llama.cpp 自动决定
     nglValue = '';
+    gpuInfo = 'GPU: auto (llama.cpp 自动分配)';
   } else if (gpuLayersMode === 'calculated') {
     // Calculated 模式：根据模型计算
     try {
-      const result = await calculateRecommendedLayers(modelPath, { availableVRAM: 6.5 });
+      const result = await calculateRecommendedLayers(modelPath, { availableVRAM: 7, ctxSize: parseInt(config.ctxSize) || 32768 });
       nglValue = result.recommendedLayers.toString();
-      command += ` # GPU: ${result.recommendedLayers}/${result.totalLayers} layers (${result.quantType}, ~${result.modelSizeGB}GB)`;
+      gpuInfo = `GPU: ${result.recommendedLayers}/${result.totalLayers} layers (${result.quantType}, ~${result.modelSizeGB}GB, KV: ${result.kvCacheSize}MB @ ${result.ctxSize})`;
     } catch (error) {
-      console.warn(`[GPU Estimator] Calculation failed: ${error.message}, using auto`);
-      nglValue = '';
+      console.warn(`[GPU Estimator] Calculation failed: ${error.message}, using fallback`);
+      // Fallback: 使用文件名估算，确保返回有效的层数
+      const fallbackResult = estimateFromFileName(modelPath, 7, parseInt(config.ctxSize) || 32768);
+      nglValue = fallbackResult.recommendedLayers.toString();
+      gpuInfo = `GPU: ${fallbackResult.recommendedLayers}/${fallbackResult.totalLayers} layers (${fallbackResult.quantType}, ~${fallbackResult.modelSizeGB}GB, KV: ${fallbackResult.kvCacheSize}MB @ ${fallbackResult.ctxSize}) [estimated]`;
     }
   } else if (gpuLayersMode === 'manual') {
     // Manual 模式：使用用户指定的值
     nglValue = config.gpuLayers || '99';
+    gpuInfo = `GPU: ${nglValue} layers (manual)`;
   }
 
   // 添加 -ngl 参数（如果有值）
-  if (nglValue !== '') {
+  if (nglValue !== '' && nglValue !== '0') {
     command += ` -ngl ${nglValue}`;
   }
 
@@ -86,7 +93,10 @@ async function buildLlamaCommand(config) {
     }
   }
 
-  return command;
+  return {
+    command,
+    gpuInfo
+  };
 }
 
 /**
@@ -129,6 +139,7 @@ async function buildLlamaArgs(config) {
   // 处理 GPU 层数
   let nglValue = '';
   let gpuInfo = '';
+
   if (gpuLayersMode === 'auto') {
     // Auto 模式：不设置 -ngl，让 llama.cpp 自动决定
     nglValue = '';
@@ -136,13 +147,15 @@ async function buildLlamaArgs(config) {
   } else if (gpuLayersMode === 'calculated') {
     // Calculated 模式：根据模型计算
     try {
-      const result = await calculateRecommendedLayers(modelPath, { availableVRAM: 6.5 });
+      const result = await calculateRecommendedLayers(modelPath, { availableVRAM: 7, ctxSize: parseInt(config.ctxSize) || 32768 });
       nglValue = result.recommendedLayers.toString();
-      gpuInfo = `GPU: ${result.recommendedLayers}/${result.totalLayers} layers (${result.quantType}, ~${result.modelSizeGB}GB)`;
+      gpuInfo = `GPU: ${result.recommendedLayers}/${result.totalLayers} layers (${result.quantType}, ~${result.modelSizeGB}GB, KV: ${result.kvCacheSize}MB @ ${result.ctxSize})`;
     } catch (error) {
-      console.warn(`[GPU Estimator] Calculation failed: ${error.message}, using auto`);
-      nglValue = '';
-      gpuInfo = 'GPU: auto (fallback)';
+      console.warn(`[GPU Estimator] Calculation failed: ${error.message}, using fallback`);
+      // Fallback: 使用文件名估算，确保返回有效的层数
+      const fallbackResult = estimateFromFileName(modelPath, 7, parseInt(config.ctxSize) || 32768);
+      nglValue = fallbackResult.recommendedLayers.toString();
+      gpuInfo = `GPU: ${fallbackResult.recommendedLayers}/${fallbackResult.totalLayers} layers (${fallbackResult.quantType}, ~${fallbackResult.modelSizeGB}GB, KV: ${fallbackResult.kvCacheSize}MB @ ${fallbackResult.ctxSize}) [estimated]`;
     }
   } else if (gpuLayersMode === 'manual') {
     // Manual 模式：使用用户指定的值
@@ -151,7 +164,7 @@ async function buildLlamaArgs(config) {
   }
 
   // 添加 -ngl 参数（如果有值）
-  if (nglValue !== '') {
+  if (nglValue !== '' && nglValue !== '0') {
     args.push('-ngl', nglValue);
   }
 

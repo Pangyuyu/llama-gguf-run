@@ -21,7 +21,7 @@ async function runLlama(config) {
       return arg;
     }).join(' ');
       if (gpuInfo) {
-        console.log(chalk.dim(`[${gpuInfo}]\n`));
+        console.log(chalk.cyan.dim(`[${gpuInfo}]`));
       }
       console.log(chalk.dim(`Executing: ${command} ${displayArgs}\n`));
     
