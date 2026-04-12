@@ -4,16 +4,56 @@ const { program } = require('commander');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs');
+const inquirer = require('inquirer');
 const { checkUpdate, update, getDownloadInfo, getLocalVersion } = require('../src/updater');
 
 // 确定安装目录
 const INSTALL_DIR = path.join(__dirname, '..', 'llama-cuda-12');
 
+// 配置文件路径
+const CONFIG_FILE = path.join(__dirname, '..', '.qwen', 'gguf-updater-config.json');
+
+// 读取配置
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return { useProxy: true, proxyUrl: 'http://127.0.0.1:7897' };
+}
+
+// 保存配置
+function saveConfig(config) {
+  const dir = path.dirname(CONFIG_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+// 设置代理环境变量
+function setupProxy(config) {
+  if (config.useProxy && config.proxyUrl) {
+    process.env.HTTP_PROXY = config.proxyUrl;
+    process.env.HTTPS_PROXY = config.proxyUrl;
+  }
+}
+
 program
   .name('gguf-updater')
   .description('Check and update llama.cpp CUDA 12 binaries')
   .option('-d, --dir <path>', 'Installation directory', INSTALL_DIR)
-  .option('-y, --yes', 'Skip confirmation and update directly', false);
+  .option('-y, --yes', 'Skip confirmation and update directly', false)
+  .option('--proxy <url>', 'Use proxy (e.g., http://127.0.0.1:7897)')
+  .option('--no-proxy', 'Do not use proxy');
+
+program
+  .command('config')
+  .description('Configure proxy settings')
+  .action(async () => {
+    await runConfig();
+  });
 
 program
   .command('check')
@@ -46,10 +86,10 @@ program
 
 // 默认命令
 program
-  .argument('[command]', 'Command to run (check|update|version|download)', 'check')
+  .argument('[command]', 'Command to run (check|update|version|download|config)', 'check')
   .action(async (command) => {
     const options = program.opts();
-    
+
     switch (command) {
       case 'check':
         await runCheck(options);
@@ -63,6 +103,9 @@ program
       case 'download':
         await showDownloadLink(options);
         break;
+      case 'config':
+        await runConfig();
+        break;
       default:
         console.error(chalk.red(`Unknown command: ${command}`));
         program.help();
@@ -70,16 +113,29 @@ program
   });
 
 async function runCheck(options) {
-  console.log(chalk.bold.cyan('\n🦙 Checking for llama.cpp updates...\n'));
+  // 加载并应用配置
+  const config = loadConfig();
   
+  // 命令行参数优先
+  if (options.proxy) {
+    config.useProxy = true;
+    config.proxyUrl = options.proxy;
+  } else if (options.noProxy) {
+    config.useProxy = false;
+  }
+  
+  setupProxy(config);
+  
+  console.log(chalk.bold.cyan('\n🦙 Checking for llama.cpp updates...\n'));
+
   try {
     const result = await checkUpdate(options.dir);
-    
+
     console.log(chalk.dim(`Install directory: ${options.dir}\n`));
     console.log(`  Local version:  ${result.localVersion ? chalk.green(result.localVersion) : chalk.yellow('not installed')}`);
     console.log(`  Remote version: ${chalk.cyan(result.remoteVersion)}`);
     console.log(`  Published at:   ${chalk.dim(result.publishedAt)}\n`);
-    
+
     if (result.hasUpdate) {
       console.log(chalk.yellowBright('⚡ Update available!\n'));
       console.log(chalk.dim('Download manually: ') + chalk.cyan('gguf-updater download'));
@@ -94,24 +150,36 @@ async function runCheck(options) {
 }
 
 async function runUpdate(options) {
-  console.log(chalk.bold.cyan('\n🦙 Updating llama.cpp...\n'));
+  // 加载并应用配置
+  const config = loadConfig();
   
+  // 命令行参数优先
+  if (options.proxy) {
+    config.useProxy = true;
+    config.proxyUrl = options.proxy;
+  } else if (options.noProxy) {
+    config.useProxy = false;
+  }
+  
+  setupProxy(config);
+  
+  console.log(chalk.bold.cyan('\n🦙 Updating llama.cpp...\n'));
+
   try {
     const result = await checkUpdate(options.dir);
-    
+
     if (!result.hasUpdate && result.localVersion) {
       console.log(chalk.green('✓ You are already using the latest version.\n'));
       return;
     }
-    
+
     console.log(`  Current version:  ${result.localVersion || 'not installed'}`);
     console.log(`  Target version:   ${chalk.cyan(result.remoteVersion)}`);
     console.log(`  File:             ${result.assetName}`);
     console.log(`  Download size:    ${chalk.dim('(~300-400MB)')}\n`);
-    
+
     // 确认
     if (!options.yes) {
-      const inquirer = require('inquirer');
       const { confirm } = await inquirer.prompt([
         {
           type: 'confirm',
@@ -120,13 +188,13 @@ async function runUpdate(options) {
           default: true
         }
       ]);
-      
+
       if (!confirm) {
         console.log(chalk.yellow('Update cancelled.\n'));
         return;
       }
     }
-    
+
     // 执行更新
     const updateResult = await update(options.dir, (progress) => {
       switch (progress.stage) {
@@ -163,11 +231,24 @@ async function runUpdate(options) {
 }
 
 async function showDownloadLink(options) {
-  console.log(chalk.bold.cyan('\n🦙 Manual Download\n'));
+  // 加载并应用配置
+  const config = loadConfig();
   
+  // 命令行参数优先
+  if (options.proxy) {
+    config.useProxy = true;
+    config.proxyUrl = options.proxy;
+  } else if (options.noProxy) {
+    config.useProxy = false;
+  }
+  
+  setupProxy(config);
+  
+  console.log(chalk.bold.cyan('\n🦙 Manual Download\n'));
+
   try {
     const info = await getDownloadInfo();
-    
+
     console.log(chalk.dim('Version: ') + chalk.cyan(info.version));
     console.log(chalk.dim('File: ') + chalk.white(info.assetName));
     console.log(chalk.dim('Size: ') + chalk.white('~300-400 MB'));
@@ -185,6 +266,52 @@ async function showDownloadLink(options) {
     console.error(chalk.red(`Error: ${error.message}\n`));
     process.exit(1);
   }
+}
+
+// 配置代理
+async function runConfig() {
+  console.log(chalk.bold.cyan('\n🦙 GGUF Updater Configuration\n'));
+  
+  const config = loadConfig();
+  
+  console.log(chalk.dim('Current configuration:'));
+  console.log(`  Use Proxy: ${config.useProxy ? chalk.green('Yes') : chalk.red('No')}`);
+  console.log(`  Proxy URL: ${config.proxyUrl || 'N/A'}\n`);
+  
+  const { useProxy } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'useProxy',
+      message: 'Use proxy for downloads?',
+      default: config.useProxy !== false  // 默认是 true
+    }
+  ]);
+  
+  let proxyUrl = config.proxyUrl || 'http://127.0.0.1:7897';
+  
+  if (useProxy) {
+    const { proxyUrlInput } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'proxyUrlInput',
+        message: 'Proxy URL:',
+        default: proxyUrl,
+        when: useProxy
+      }
+    ]);
+    proxyUrl = proxyUrlInput;
+  }
+  
+  const newConfig = {
+    useProxy,
+    proxyUrl: useProxy ? proxyUrl : null
+  };
+  
+  saveConfig(newConfig);
+  
+  console.log(chalk.green('\n✓ Configuration saved!\n'));
+  console.log(chalk.dim('Settings saved to: ') + chalk.gray(CONFIG_FILE));
+  console.log(chalk.dim('\nNext time you run gguf-updater, these settings will be used automatically.\n'));
 }
 
 function showVersion() {

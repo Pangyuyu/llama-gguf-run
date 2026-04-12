@@ -199,7 +199,28 @@ gguf-updater update -d /path/to/your/llama-binaries
 
 ### 代理支持
 
-如果下载速度慢，可以配置 HTTP/HTTPS 代理：
+如果下载速度慢，可以配置 HTTP/HTTPS 代理。
+
+#### 方法 1：配置代理（推荐，一次配置永久生效）
+
+```bash
+# 交互式配置代理
+gguf-updater config
+```
+
+配置后会保存到配置文件，下次自动使用。
+
+#### 方法 2：命令行临时指定
+
+```bash
+# 使用代理
+gguf-updater check --proxy http://127.0.0.1:7897
+
+# 不使用代理
+gguf-updater check --no-proxy
+```
+
+#### 方法 3：环境变量（旧方法，每次需要设置）
 
 **PowerShell:**
 ```powershell
