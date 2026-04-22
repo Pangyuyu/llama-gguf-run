@@ -266,7 +266,7 @@ gguf-run [options]
   -p, --port <port>              服务器端口 (默认："8080")
   -T, --temp <temp>              温度 (默认："1.0")
   -P, --top-p <top-p>            Top-P 采样 (默认："0.95")
-  -n, --threads <count>          线程数 (默认："1")
+  -n, --threads <count>          线程数 (默认："1") (默认："1")
   -l, --llama-command <command>  Llama 命令名称 (默认："llama-server")
   -e, --extra-args <args>        额外的 llama 参数
   -j, --mmproj <file>            多模态投影文件 (.gguf)
