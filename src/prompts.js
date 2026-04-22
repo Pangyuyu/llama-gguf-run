@@ -155,6 +155,22 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     }
   });
 
+  // Threads
+  questions.push({
+    type: 'input',
+    name: 'threads',
+    message: 'Number of threads:',
+    default: options.threads || '1',
+    validate: (input) => {
+      const num = parseInt(input);
+      if (isNaN(num) || num < 1) {
+        return 'Please enter a valid positive number (minimum 1)';
+      }
+      return true;
+    },
+    suffix: chalk.dim(' (1 = single thread, higher = faster but more CPU usage)')
+  });
+
   // GPU 层数模式选择
   questions.push({
     type: 'list',

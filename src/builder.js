@@ -14,6 +14,7 @@ const { calculateRecommendedLayers, estimateFromFileName } = require('./gpu-esti
  * @param {string} config.llamaCommand - llama 命令名称 (默认 llama-server)
  * @param {string} config.mmproj - 多模态投影文件路径 (可选)
  * @param {boolean} config.enableThinking - 是否启用思考模式 (默认 true)
+ * @param {string} config.threads - 线程数 (默认 1)
  * @param {string} config.gpuLayersMode - GPU 层数模式：'auto', 'calculated', 'manual'
  * @param {number} config.gpuLayers - GPU 层数（手动模式）
  * @returns {Promise<Object>} {command: string, gpuInfo: string}
@@ -24,6 +25,7 @@ async function buildLlamaCommand(config) {
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
   const gpuLayersMode = config.gpuLayersMode || 'auto';
+  const threads = config.threads || '1';
 
   // 基础命令
   let command = llamaCmd;
@@ -35,6 +37,7 @@ async function buildLlamaCommand(config) {
   command += ` --port ${config.port}`;
   command += ` --temp ${config.temp}`;
   command += ` --top-p ${config.topP}`;
+  command += ` --threads ${threads}`;
 
   // 多模态投影文件 (如果提供)
   if (config.mmproj) {
@@ -110,6 +113,7 @@ async function buildLlamaArgs(config) {
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
   const gpuLayersMode = config.gpuLayersMode || 'auto';
+  const threads = config.threads || '1';
 
   const args = [
     '-m', modelPath,
@@ -117,7 +121,8 @@ async function buildLlamaArgs(config) {
     '--host', config.host,
     '--port', config.port,
     '--temp', config.temp,
-    '--top-p', config.topP
+    '--top-p', config.topP,
+    '--threads', threads
   ];
 
   // 多模态投影文件 (如果提供)

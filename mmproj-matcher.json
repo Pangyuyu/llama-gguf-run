@@ -12,6 +12,32 @@
       "gemma-4-26B-A4B-it-mmproj-BF16.gguf":[
         "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q4_K_M",
         "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q8_0"
+      ],
+      "mmproj-Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-f16.gguf":[
+        "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P"
+      ],
+      "mmproj-Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-f16.gguf":[
+        "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_P"
+      ],
+      "mmproj-Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-BF16.gguf":[
+        "Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-Q8_0"
+      ],
+      "mmproj-Qwen3.6-35B-A3B-Abliterated-Heretic.gguf":[
+        "Qwen3.6-35B-A3B-Abliterated-Heretic-Q4_K_M"
+      ],
+      "mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf":[
+        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_P",
+        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q6_K_P",
+        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_K_P"
+      ],
+      "Qwen3.5-0.8B-mmproj-F32.gguf":[
+        "Qwen3.5-0.8B-UD-Q8_K_XL"
+      ],
+      "mmproj-Qwen3.5-2B-Uncensored-HauhauCS-Aggressive-f16.gguf":[
+        "Qwen3.5-2B-Uncensored-HauhauCS-Aggressive-Q8_0"
+      ],
+      "Qwen3.5-2B-UD-mmproj-F32.gguf":[
+        "Qwen3.5-2B-UD-Q8_K_XL"
       ]
     }
   }

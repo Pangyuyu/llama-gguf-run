@@ -266,6 +266,7 @@ gguf-run [options]
   -p, --port <port>              服务器端口 (默认："8080")
   -T, --temp <temp>              温度 (默认："1.0")
   -P, --top-p <top-p>            Top-P 采样 (默认："0.95")
+  -n, --threads <count>          线程数 (默认："1")
   -l, --llama-command <command>  Llama 命令名称 (默认："llama-server")
   -e, --extra-args <args>        额外的 llama 参数
   -j, --mmproj <file>            多模态投影文件 (.gguf)
@@ -325,6 +326,7 @@ gguf-run -m qwen-7b.gguf -c 4096 -H 0.0.0.0 -p 8080 -T 0.7 -P 0.9 -l llama-serve
 | port | 服务器监听端口 | 8080 |
 | temp | 温度参数 | 1.0 |
 | top-p | Top-P 采样概率 | 0.95 |
+| threads | 线程数 | 1 |
 | enable-thinking | 启用思考模式 | true |
 | llama-command | Llama 命令名称 | llama-server |
 
