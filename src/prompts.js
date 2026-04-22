@@ -206,8 +206,8 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     type: 'input',
     name: 'extraArgs',
     message: 'Additional llama arguments (optional):',
-    default: options.extraArgs || '-b 1024 -ub 128 -t 14 -fa auto',
-    suffix: chalk.dim(' (e.g., --n-gpu-layers 35 --threads 4)\n    \x1b[90mFor image support with Cherry Studio: --cache-type-k q8_0 --no-mmap\x1b[0m')
+    default: options.extraArgs || '-b 1024 -ub 128 -fa auto',
+    suffix: chalk.dim(' (e.g., --n-gpu-layers 35)\n    \x1b[90mFor image support with Cherry Studio: --cache-type-k q8_0 --no-mmap\x1b[0m')
   });
 
   // 思考模式 (enable_thinking)

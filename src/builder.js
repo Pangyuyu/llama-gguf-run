@@ -89,8 +89,12 @@ async function buildLlamaCommand(config) {
 
   // 额外参数
   if (config.extraArgs && config.extraArgs.trim() !== '') {
-    // 移除额外参数中可能重复的 -ngl
-    const cleanedExtraArgs = config.extraArgs.trim().replace(/-ngl\s+\d+/g, '').trim();
+    // 移除额外参数中可能重复的 -ngl 和 -t/--threads
+    let cleanedExtraArgs = config.extraArgs.trim()
+      .replace(/-ngl\s+\d+/g, '')
+      .replace(/-t\s+\d+/g, '')
+      .replace(/--threads\s+\d+/g, '')
+      .trim();
     if (cleanedExtraArgs) {
       command += ` ${cleanedExtraArgs}`;
     }
@@ -175,8 +179,12 @@ async function buildLlamaArgs(config) {
 
   // 解析额外参数
   if (config.extraArgs && config.extraArgs.trim() !== '') {
-    // 移除额外参数中可能重复的 -ngl
-    const cleanedExtraArgs = config.extraArgs.trim().replace(/-ngl\s+\d+/g, '').trim();
+    // 移除额外参数中可能重复的 -ngl 和 -t/--threads
+    let cleanedExtraArgs = config.extraArgs.trim()
+      .replace(/-ngl\s+\d+/g, '')
+      .replace(/-t\s+\d+/g, '')
+      .replace(/--threads\s+\d+/g, '')
+      .trim();
     if (cleanedExtraArgs) {
       const extraParts = cleanedExtraArgs.split(/\s+/);
       args.push(...extraParts);
