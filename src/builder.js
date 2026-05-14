@@ -25,7 +25,7 @@ async function buildLlamaCommand(config) {
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
   const gpuLayersMode = config.gpuLayersMode || 'auto';
-  const threads = config.threads || '1';
+  const threads = config.threads || '6';
 
   // 基础命令
   let command = llamaCmd;
@@ -50,8 +50,10 @@ async function buildLlamaCommand(config) {
   // 固定参数 (本机使用)
   command += ` -np 1`;
 
-  // 只有关闭思考模式时才传递参数 (Qwen3.5 默认开启思考模式)
-  if (!enableThinking) {
+  // 根据思考模式传递参数
+  if (enableThinking) {
+    command += ` --chat-template-kwargs '{"enable_thinking": true, "preserve_thinking": true}'`;
+  } else {
     command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
   }
 
@@ -117,7 +119,7 @@ async function buildLlamaArgs(config) {
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
   const gpuLayersMode = config.gpuLayersMode || 'auto';
-  const threads = config.threads || '1';
+  const threads = config.threads || '6';
 
   const args = [
     '-m', modelPath,
@@ -140,8 +142,10 @@ async function buildLlamaArgs(config) {
   // 固定参数 (本机使用)
   args.push('-np', '1');
 
-  // 只有关闭思考模式时才传递参数 (Qwen3.5 默认开启思考模式)
-  if (!enableThinking) {
+  // 根据思考模式传递参数
+  if (enableThinking) {
+    args.push('--chat-template-kwargs', '{"enable_thinking": true, "preserve_thinking": true}');
+  } else {
     args.push('--chat-template-kwargs', '{"enable_thinking": false}');
   }
 

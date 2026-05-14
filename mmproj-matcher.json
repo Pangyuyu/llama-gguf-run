@@ -38,6 +38,17 @@
       ],
       "Qwen3.5-2B-UD-mmproj-F32.gguf":[
         "Qwen3.5-2B-UD-Q8_K_XL"
+      ],
+      "mmproj-Qwen3.5-9B-Uncensored-DeepSeek-V4-Spectre-BF16.gguf":[
+        "Qwen3.5-9B-Uncensored-DeepSeek-V4-Q4_K_M",
+        "Qwen3.5-9B-Uncensored-DeepSeek-V4-Q8_0"
+      ],
+      "mmproj-Qwen3.6-35B-A3B-Uncensored.f16.gguf":[
+        "Qwen3.6-35B-A3B-Uncensored-Genesis-MXFP4_MOE"
+      ],
+      "mmproj-MiniCPM-V-4.6-bf16.gguf":[
+        "MiniCPM-V-4.6-bf16",
+        "MiniCPM-V-4.6-Q4_K_M"
       ]
     }
   }

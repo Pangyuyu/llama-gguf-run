@@ -2,6 +2,7 @@
 
 ## Gemma-4
 - 无审查模型暂时使用方式
+  主要设置：--flash-attn off
 ```cmd
 llama-server `
   -m "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf" `

@@ -84,18 +84,41 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
 
   // Context Size
   questions.push({
-    type: 'input',
+    type: 'list',
     name: 'ctxSize',
     message: 'Context size:',
-    default: options.ctxSize || '32768',  // 默认 32K，针对稀疏模型优化，对速度影响不大
+    choices: [
+      { name: '1K  (1024)  - 最小内存占用', value: '1024' },
+      { name: '2K  (2048)  - 低内存模式', value: '2048' },
+      { name: '4K  (4096)  - 标准模式', value: '4096' },
+      { name: '8K  (8192)  - 中等上下文', value: '8192' },
+      { name: '16K (16384) - 较长上下文', value: '16384' },
+      { name: '32K (32768) - 推荐默认', value: '32768' },
+      { name: '64K (65536) - 大上下文 (需要更多 VRAM)', value: '65536' },
+      { name: '128K (131072) - 超大上下文 (高 VRAM 占用)', value: '131072' },
+      { name: '自定义输入...', value: '__custom__' }
+    ],
+    default: (() => {
+      const defaultVal = options.ctxSize || '32768';
+      const idx = ['1024', '2048', '4096', '8192', '16384', '32768', '65536', '131072'].indexOf(defaultVal);
+      return idx >= 0 ? idx : 5; // 默认选中 32K
+    })()
+  });
+
+  // 自定义 Context Size（仅当选择"自定义输入"时显示）
+  questions.push({
+    type: 'input',
+    name: 'ctxSizeCustom',
+    message: 'Enter custom context size:',
+    default: '32768',
+    when: (answers) => answers.ctxSize === '__custom__',
     validate: (input) => {
       const num = parseInt(input);
       if (isNaN(num) || num <= 0) {
         return 'Please enter a valid positive number';
       }
       return true;
-    },
-    suffix: chalk.dim(' (16384 = 16K, 32768 = 32K; larger = more VRAM for KV cache)')
+    }
   });
 
   // Host
@@ -160,7 +183,7 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
     type: 'input',
     name: 'threads',
     message: 'Number of threads:',
-    default: options.threads || '1',
+    default: options.threads || '6',
     validate: (input) => {
       const num = parseInt(input);
       if (isNaN(num) || num < 1) {
