@@ -628,6 +628,39 @@ gguf-runner/
 - 使用`-p`参数指定其他端口
 - 或停止占用端口的程序
 
+### 5.Gemma-4 模型崩溃 / 无法识别图片
+
+**错误信息**: 程序启动后立即崩溃，或 `error: invalid argument:`，或图片识别失败
+
+**原因**: Gemma-4 模型需要特定的参数才能正常运行图片识别功能，默认参数不兼容。
+
+**解决方法**: 本项目已通过 `model-profiles.json` 配置文件为 Gemma-4 模型设置了正确的参数。确保配置文件中包含以下 profile：
+
+```json
+"gemma-4-26b-uncensored": {
+  "models": [
+    "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q4_K_M",
+    "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q8_0"
+  ],
+  "args": {
+    "--flash-attn": "on",
+    "--fit": "on",
+    "--jinja": "",
+    "--image-min-tokens": "1120",
+    "--image-max-tokens": "1120",
+    "--ubatch-size": "2048",
+    "--batch-size": "2048"
+  },
+  "thinkingMode": "reasoning-flag"
+}
+```
+
+**关键参数说明**:
+- `--image-min-tokens` / `--image-max-tokens`: 设置图片解析的 token 范围
+- `--reasoning on`: Gemma-4 使用 reasoning 参数替代 `--chat-template-kwargs` 的 thinking 模式
+- `--jinja`: 启用 Jinja 模板支持（空值标志参数）
+- `thinkingMode: "reasoning-flag"`: 让代码自动使用 `--reasoning on/off` 而非 `--chat-template-kwargs`
+
 ## 技术栈
 
 - **Commander.js**: 命令行参数解析
