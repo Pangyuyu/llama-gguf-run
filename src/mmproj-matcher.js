@@ -9,7 +9,7 @@ let CONFIG_PATH = null;
  * @param {string} modelsDir - models 目录路径
  */
 function setConfigPath(modelsDir) {
-  CONFIG_PATH = path.join(modelsDir, '..', 'mmproj-matcher.json');
+  CONFIG_PATH = path.join(modelsDir, '..', 'model-profiles.json');
 }
 
 /**

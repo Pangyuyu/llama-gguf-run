@@ -1,5 +1,48 @@
 const path = require('path');
+const fs = require('fs');
 const { calculateRecommendedLayers, estimateFromFileName } = require('./gpu-estimator');
+
+/**
+ * 从配置文件加载 model profiles
+ * @param {string} modelPath - 模型文件路径
+ * @returns {Object|null} 匹配到的 profile {args, thinkingMode}，如果没有匹配则返回 null
+ */
+function loadModelProfile(modelPath) {
+  try {
+    const modelName = path.basename(modelPath, '.gguf');
+    const configDir = path.dirname(path.dirname(modelPath));
+    const configPath = path.join(configDir, 'model-profiles.json');
+    
+    if (!fs.existsSync(configPath)) {
+      return null;
+    }
+    
+    const configData = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configData);
+    
+    if (!config.profiles) {
+      return null;
+    }
+    
+    // 遍历所有 profiles，查找精确匹配的模型
+    for (const [profileName, profile] of Object.entries(config.profiles)) {
+      if (profile.models && Array.isArray(profile.models)) {
+        if (profile.models.includes(modelName)) {
+          console.log(`[Profile] Matched: ${modelName} → ${profileName}`);
+          return {
+            args: profile.args || {},
+            thinkingMode: profile.thinkingMode || 'chat-template-kwargs'
+          };
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn(`[Profile] Failed to load model profiles: ${error.message}`);
+    return null;
+  }
+}
 
 /**
  * 构建 llama 命令字符串
@@ -50,11 +93,25 @@ async function buildLlamaCommand(config) {
   // 固定参数 (本机使用)
   command += ` -np 1`;
 
-  // 根据思考模式传递参数
-  if (enableThinking) {
-    command += ` --chat-template-kwargs '{"enable_thinking": true, "preserve_thinking": true}'`;
+  // 加载 profile 以获取 thinkingMode
+  const profile = loadModelProfile(modelPath);
+  const thinkingMode = profile?.thinkingMode || 'chat-template-kwargs';
+
+  // 根据 thinkingMode 决定 thinking 参数的传递方式
+  if (thinkingMode === 'reasoning-flag') {
+    // 使用 --reasoning on/off
+    if (enableThinking) {
+      command += ` --reasoning on`;
+    } else {
+      command += ` --reasoning off`;
+    }
   } else {
-    command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
+    // 默认：使用 --chat-template-kwargs
+    if (enableThinking) {
+      command += ` --chat-template-kwargs '{"enable_thinking": true, "preserve_thinking": true}'`;
+    } else {
+      command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
+    }
   }
 
   // 处理 GPU 层数
@@ -142,11 +199,21 @@ async function buildLlamaArgs(config) {
   // 固定参数 (本机使用)
   args.push('-np', '1');
 
-  // 根据思考模式传递参数
-  if (enableThinking) {
-    args.push('--chat-template-kwargs', '{"enable_thinking": true, "preserve_thinking": true}');
+  // 加载 profile 以获取 thinkingMode
+  const profile = loadModelProfile(modelPath);
+  const thinkingMode = profile?.thinkingMode || 'chat-template-kwargs';
+
+  // 根据 thinkingMode 决定 thinking 参数的传递方式
+  if (thinkingMode === 'reasoning-flag') {
+    // 使用 --reasoning on/off
+    args.push('--reasoning', enableThinking ? 'on' : 'off');
   } else {
-    args.push('--chat-template-kwargs', '{"enable_thinking": false}');
+    // 默认：使用 --chat-template-kwargs
+    if (enableThinking) {
+      args.push('--chat-template-kwargs', '{"enable_thinking": true, "preserve_thinking": true}');
+    } else {
+      args.push('--chat-template-kwargs', '{"enable_thinking": false}');
+    }
   }
 
   // 处理 GPU 层数
@@ -192,6 +259,18 @@ async function buildLlamaArgs(config) {
     if (cleanedExtraArgs) {
       const extraParts = cleanedExtraArgs.split(/\s+/);
       args.push(...extraParts);
+    }
+  }
+
+  // 加载并应用 model profile args
+  if (profile && profile.args) {
+    for (const [key, value] of Object.entries(profile.args)) {
+      if (value === '') {
+        // 空字符串视为纯标志参数（如 --jinja）
+        args.push(key);
+      } else {
+        args.push(key, value);
+      }
     }
   }
 
