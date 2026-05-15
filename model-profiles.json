@@ -87,10 +87,10 @@
         "--flash-attn": "on",
         "--fit": "on",
         "--jinja":"",
-        "--image-min-tokens":"1120",
-        "--image-max-tokens":"1120",
-        "--ubatch-size":"2048",
-        "--batch-size":"2048"
+        "--image-min-tokens":"",
+        "--image-max-tokens":"560",
+        "--ubatch-size":"1024",
+        "--batch-size":"1024"
       },
       "thinkingMode": "reasoning-flag"
     }
