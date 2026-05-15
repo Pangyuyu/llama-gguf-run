@@ -206,7 +206,8 @@ async function buildLlamaArgs(config) {
   // 根据 thinkingMode 决定 thinking 参数的传递方式
   if (thinkingMode === 'reasoning-flag') {
     // 使用 --reasoning on/off
-    args.push('--reasoning', enableThinking ? 'on' : 'off');
+    const reasoningValue = enableThinking ? 'on' : 'off';
+    args.push('--reasoning', reasoningValue);
   } else {
     // 默认：使用 --chat-template-kwargs
     if (enableThinking) {

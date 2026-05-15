@@ -62,7 +62,7 @@
         "--flash-attn": "on",
         "--fit": "on",
         "--jinja":"",
-        "--image-min-tokens":"256",
+        "--image-min-tokens":"70",
         "--image-max-tokens":"1120",
         "--ubatch-size":"1024",
         "--batch-size":"1024"
@@ -73,10 +73,16 @@
       "models": [
         "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P"
       ],
-      "args": {
-        "--flash-attn": "true",
-        "--fit": "on"
-      }
+     "args": {
+        "--flash-attn": "on",
+        "--fit": "on",
+        "--jinja":"",
+        "--image-min-tokens":"70",
+        "--image-max-tokens":"1120",
+        "--ubatch-size":"1024",
+        "--batch-size":"1024"
+      },
+      "thinkingMode": "reasoning-flag"
     },
     "gemma-4-26b-uncensored": {
       "models": [
@@ -87,7 +93,7 @@
         "--flash-attn": "on",
         "--fit": "on",
         "--jinja":"",
-        "--image-min-tokens":"256",
+        "--image-min-tokens":"70",
         "--image-max-tokens":"1120",
         "--ubatch-size":"1024",
         "--batch-size":"1024"
