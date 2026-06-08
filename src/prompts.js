@@ -1,17 +1,17 @@
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs');
-const { getMmprojOptions, matchMmprojToFile } = require('./mmproj-matcher');
+const { getMmprojOptions, matchMmprojToFile, getPackageMmprojFiles, isPackageModel } = require('./mmproj-matcher');
 const { calculateRecommendedLayers, getGPULayersModeOptions } = require('./gpu-estimator');
 
 /**
  * 构建交互式提示问题列表
  * @param {Object} options - 命令行参数选项
- * @param {string[]} ggufFiles - 可用的 GGUF 文件列表
+ * @param {Array} modelEntries - 模型条目数组（来自 scanModels）
  * @param {string} modelsDir - models 目录路径
  * @returns {Array} Inquirer 问题数组
  */
-function buildPromptQuestions(options, ggufFiles, modelsDir) {
+function buildPromptQuestions(options, modelEntries, modelsDir) {
   const questions = [];
 
   // 模型选择 (如果命令行未指定)
@@ -20,67 +20,117 @@ function buildPromptQuestions(options, ggufFiles, modelsDir) {
       type: 'list',
       name: 'model',
       message: 'Select a GGUF model:',
-      choices: ggufFiles,
-      pageSize: 10
+      choices: modelEntries.map(m => ({
+        name: m.displayName,
+        value: m.modelPath    // 使用绝对路径作为值
+      })),
+      pageSize: 10,
+      suffix: chalk.dim(` (${modelEntries.length} models available)`)
     });
   }
 
-  // GPU 层数模式选择 - 在模型选择之后，动态计算推荐值
-  // 注意：由于需要在用户选择模型后计算，我们在 mmproj 选择之后添加 GPU 层数问题
-
-  // 多模态投影文件选择 (可选) - 扫描 mmprojs 目录，支持自动匹配
+  // 全局 mmprojs 目录（平铺模型备选）
   const mmprojsDir = path.join(path.dirname(modelsDir), 'mmprojs');
-  const { files: mmprojFiles } = getMmprojOptions(mmprojsDir, modelsDir, null);
+  let globalMmprojFiles = [];
+  try {
+    globalMmprojFiles = fs.readdirSync(mmprojsDir)
+      .filter(f => path.extname(f).toLowerCase() === '.gguf' && f.toLowerCase().includes('mmproj'))
+      .sort();
+  } catch { /* dir not found, no global mmprojs */ }
 
-  if (mmprojFiles.length > 0) {
-    questions.push({
-      type: 'list',
-      name: 'mmproj',
-      message: 'Select a multimodal projection file (optional):',
-      choices: (answers) => {
-        // 确定当前选择的模型（命令行指定或交互式选择）
-        const currentModel = options.model || answers.model;
-        const choices = [];
+  // 多模态投影文件选择 (可选)
+  // 支持包内自动发现和平铺全局匹配
+  const hasGlobalMmprojs = globalMmprojFiles.length > 0;
 
-        if (currentModel) {
-          // 进行自动匹配
-          const matched = matchMmprojToFile(currentModel, [...mmprojFiles]);
+  // 检查模型是否处于"可跳过 mmproj 问题"的状态
+  function shouldSkipMmprojQuestion(rawModel) {
+    if (!rawModel) return !hasGlobalMmprojs; // 无模型且无全局 mmproj → 跳过
 
-          if (matched) {
-            // 只显示匹配的选项和 None（其他 mmproj 文件不兼容，不显示）
-            choices.push({
-              name: `${matched} ⭐ (auto-matched)`,
-              value: matched
-            });
-            choices.push({
-              name: 'None',
-              value: 'None'
-            });
-          } else {
-            // 没有匹配时，显示所有 mmproj 文件（让用户手动尝试）
-            choices.push('None', ...mmprojFiles);
-          }
-        } else {
-          // 没有模型时，返回简单列表
-          choices.push('None', ...mmprojFiles);
-        }
+    const modelPath = options.model ? path.resolve(rawModel) : rawModel;
+    const pkgMmprojs = getPackageMmprojFiles(modelPath);
 
-        return choices;
-      },
-      default: (answers) => {
-        // 确定当前选择的模型
-        const currentModel = options.model || answers.model;
-        if (!currentModel) {
-          return 'None';
-        }
+    if (pkgMmprojs.length === 1) {
+      // 包内 1 个 mmproj → 自动使用，不询问
+      return true;
+    }
+    if (pkgMmprojs.length > 1) {
+      return false; // 多个 mmproj → 让用户选
+    }
 
-        // 进行自动匹配并返回匹配结果作为默认值
-        const matched = matchMmprojToFile(currentModel, [...mmprojFiles]);
-        return matched || 'None';
-      },
-      suffix: chalk.dim(' (for image/video analysis)')
-    });
+    // 包内无 mmproj → 检查全局
+    if (!hasGlobalMmprojs) return true; // 没有全局 mmproj → 跳过
+    return false; // 有全局 mmproj → 显示让用户选
   }
+
+  // 获取 mmproj 选项列表
+  function getMmprojChoices(rawModel) {
+    if (!rawModel) {
+      return ['None', ...globalMmprojFiles];
+    }
+
+    const modelPath = options.model ? path.resolve(rawModel) : rawModel;
+    const pkgMmprojs = getPackageMmprojFiles(modelPath);
+
+    if (pkgMmprojs.length > 0) {
+      // 包模型：只显示包内的 mmproj 文件
+      const choices = ['None'];
+      for (const f of pkgMmprojs) {
+        choices.push({ name: `📦 ${f}`, value: f });
+      }
+      return choices;
+    }
+
+    // 平铺模型：传统行为
+    const choices = [];
+    const matched = matchMmprojToFile(modelPath, [...globalMmprojFiles]);
+    if (matched) {
+      choices.push({ name: `${matched} ⭐ (auto-matched)`, value: matched });
+      choices.push({ name: 'None', value: 'None' });
+    } else {
+      choices.push('None', ...globalMmprojFiles);
+    }
+    return choices;
+  }
+
+  // 获取 mmproj 默认值
+  function getMmprojDefault(rawModel) {
+    if (!rawModel) return 'None';
+
+    const modelPath = options.model ? path.resolve(rawModel) : rawModel;
+    const pkgMmprojs = getPackageMmprojFiles(modelPath);
+
+    if (pkgMmprojs.length > 0) {
+      // 包模型：如果有精确 1 个，自动选；否则 None（让用户选）
+      return pkgMmprojs.length === 1 ? pkgMmprojs[0] : 'None';
+    }
+
+    // 平铺模型
+    const matched = matchMmprojToFile(modelPath, [...globalMmprojFiles]);
+    return matched || 'None';
+  }
+
+  questions.push({
+    type: 'list',
+    name: 'mmproj',
+    message: 'Select a multimodal projection file (optional):',
+    choices: (answers) => {
+      const rawModel = options.model || answers.model;
+      return getMmprojChoices(rawModel);
+    },
+    default: (answers) => {
+      const rawModel = options.model || answers.model;
+      return getMmprojDefault(rawModel);
+    },
+    when: (answers) => {
+      // CLI 模式：总是显示（用户需要手动确认）
+      if (options.model) {
+        return getMmprojChoices(options.model).length > 1; // 有可选 mmproj 才显示
+      }
+      // 交互模式：根据模型上下文决定是否跳过
+      return !shouldSkipMmprojQuestion(answers.model);
+    },
+    suffix: chalk.dim(' (for image/video analysis)')
+  });
 
   // Context Size
   questions.push({

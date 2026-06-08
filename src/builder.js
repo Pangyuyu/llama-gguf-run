@@ -4,31 +4,68 @@ const { calculateRecommendedLayers, estimateFromFileName } = require('./gpu-esti
 
 /**
  * 从配置文件加载 model profiles
+ *
+ * 优先级：
+ * 1. 包内 _profile.json（模型在包目录中时）
+ * 2. 全局 model-profiles.json 的 profiles 段
+ *
  * @param {string} modelPath - 模型文件路径
  * @returns {Object|null} 匹配到的 profile {args, thinkingMode}，如果没有匹配则返回 null
  */
 function loadModelProfile(modelPath) {
+  const modelName = path.basename(modelPath, '.gguf');
+
+  // 优先级 1：检查包内 _profile.json
+  const modelDir = path.dirname(modelPath);
+  const packageProfilePath = path.join(modelDir, '_profile.json');
   try {
-    const modelName = path.basename(modelPath, '.gguf');
-    const configDir = path.dirname(path.dirname(modelPath));
-    const configPath = path.join(configDir, 'model-profiles.json');
-    
-    if (!fs.existsSync(configPath)) {
+    if (fs.existsSync(packageProfilePath)) {
+      const raw = fs.readFileSync(packageProfilePath, 'utf8');
+      const pkgProfile = JSON.parse(raw);
+      const pkgName = path.basename(modelDir);
+      console.log(`[Profile] Matched (package): ${modelName} → ${pkgName}/_profile.json`);
+      return {
+        args: pkgProfile.args || {},
+        thinkingMode: pkgProfile.thinkingMode || 'chat-template-kwargs'
+      };
+    }
+  } catch (error) {
+    console.warn(`[Profile] Failed to load package profile: ${error.message}`);
+  }
+
+  // 优先级 2：全局 model-profiles.json
+  try {
+    // 向上查找 model-profiles.json（兼容包目录和平铺模型）
+    let searchDir = path.dirname(modelPath);
+    let configPath = null;
+    let maxDepth = 10;
+    while (maxDepth-- > 0) {
+      const candidate = path.join(searchDir, 'model-profiles.json');
+      if (fs.existsSync(candidate)) {
+        configPath = candidate;
+        break;
+      }
+      const parent = path.dirname(searchDir);
+      if (parent === searchDir) break;
+      searchDir = parent;
+    }
+
+    if (!configPath) {
       return null;
     }
-    
+
     const configData = fs.readFileSync(configPath, 'utf8');
     const config = JSON.parse(configData);
-    
+
     if (!config.profiles) {
       return null;
     }
-    
+
     // 遍历所有 profiles，查找精确匹配的模型
     for (const [profileName, profile] of Object.entries(config.profiles)) {
       if (profile.models && Array.isArray(profile.models)) {
         if (profile.models.includes(modelName)) {
-          console.log(`[Profile] Matched: ${modelName} → ${profileName}`);
+          console.log(`[Profile] Matched (global): ${modelName} → ${profileName}`);
           return {
             args: profile.args || {},
             thinkingMode: profile.thinkingMode || 'chat-template-kwargs'
@@ -36,7 +73,7 @@ function loadModelProfile(modelPath) {
         }
       }
     }
-    
+
     return null;
   } catch (error) {
     console.warn(`[Profile] Failed to load model profiles: ${error.message}`);

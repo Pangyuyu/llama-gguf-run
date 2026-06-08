@@ -81,15 +81,128 @@ your-project/
 │   └── gguf-updater      # 版本更新工具
 ├── src/                  # 源代码
 ├── llama-cuda-12/         # llama.cpp CUDA 12 二进制文件 ⭐
-├── models/                # GGUF 模型文件目录 ⭐
+├── models/                # ⭐ 模型目录（支持平铺和包两种模式）
+│   ├── ...平铺模式（传统方式）
 │   ├── model1.gguf
-│   └── model2.gguf
-├── mmprojs/               # 多模态投影文件目录 ⭐
-│   ├── mmproj-Qwen2-VL.f16.gguf
-│   └── mmproj-F16.gguf
+│   ├── model2.gguf
+│   ├── ...包模式 ⭐ 推荐（模型+投影+配置自动发现）
+│   ├── qwen3.5-35b/
+│   │   ├── Q4_K_M.gguf        # 模型文件（支持多量化版本）
+│   │   ├── Q5_K_M.gguf
+│   │   ├── mmproj-f16.gguf    # 投影文件（自动关联）
+│   │   └── _profile.json      # 可选：专属参数配置
+│   └── gemma-4-26b/
+│       ├── Q4_K_M.gguf
+│       ├── mmproj-f16.gguf
+│       └── _profile.json
+├── mmprojs/               # 多模态投影文件目录（平铺模型备选）⭐
 ├── package.json
 └── README.md
 ```
+
+## 模型包系统（Model Package）⭐
+
+从 v2.0 开始，引入 **模型包（Model Package）** 目录约定，让模型、投影文件、参数配置自动关联，无需手动编辑 `model-profiles.json`。
+
+### 什么是模型包？
+
+**模型包** = `models/` 下的一个子目录，包含：
+
+```
+models/qwen3.5-35b/              ← 目录名 = 模型包名称
+├── Q4_K_M.gguf                  ← 模型文件（自动发现）
+├── Q5_K_M.gguf                  ← 支持多个量化版本
+├── mmproj-f16.gguf              ← 投影文件（自动关联到所有模型文件）
+└── _profile.json                ← 可选：模型专属参数
+```
+
+### 自动发现规则
+
+| 规则 | 说明 |
+|------|------|
+| **模型识别** | 目录内所有 `.gguf` 文件（文件名不含 `mmproj`） |
+| **投影关联** | 文件名含 `mmproj` 的 `.gguf` 文件自动作为投影文件 |
+| **配置加载** | 如果存在 `_profile.json`，自动加载其 `args` 和 `thinkingMode` |
+| **多量化共享** | 一个包内所有模型文件共享同一个 mmproj 和 profile |
+
+### 手动配置 → 自动发现
+
+**改造前**（每次新模型都要编辑 `model-profiles.json`）：
+
+```json
+{
+  "mmproj": {
+    "matches": {
+      "mmproj-Qwen3.5-f16.gguf": ["Qwen3.5-35B-Q4_K_M", "Qwen3.5-35B-Q5_K_M"]
+    }
+  },
+  "profiles": {
+    "qwen3.5": {
+      "models": ["Qwen3.5-35B-Q4_K_M", "Qwen3.5-35B-Q5_K_M"],
+      "args": { "--flash-attn": "on", "--fit": "on" },
+      "thinkingMode": "reasoning-flag"
+    }
+  }
+}
+```
+
+**改造后**（无需编辑任何配置文件）：
+
+```
+models/qwen3.5-35b/
+├── Q4_K_M.gguf          ← 放进来就行
+├── Q5_K_M.gguf          ← 放进来就行
+├── mmproj-f16.gguf      ← 放进来就行
+└── _profile.json        ← 放进来就行
+```
+
+### 新模型添加流程
+
+1. **创建目录**：`mkdir models/qwen3.6-14b/`
+2. **放入文件**：模型 `.gguf`、投影 `.gguf`、可选 `_profile.json`
+3. **运行**：`gguf-run` → 自动发现，直接可用 ✅
+
+> **无需再编辑 `model-profiles.json`！**
+
+### 平铺模式（向后兼容）
+
+仍然支持直接把 `.gguf` 文件放在 `models/` 根目录，使用传统的 `model-profiles.json` 配置方式。两种模式可以混合使用。
+
+```
+models/
+├── qwen3.6-14b/              ← 包模式（自动发现）
+│   ├── Q4_K_M.gguf
+│   └── mmproj-f16.gguf
+├── legacy-model.gguf         ← 平铺模式（传统方式）
+└── another-model.gguf
+```
+
+### 迁移指南
+
+将现有模型迁移到包目录：
+
+```bash
+# 例如：将 Qwen3.6 模型迁移到包目录
+mkdir models/qwen3.6-35b/
+mv models/Qwen3.6-35B-*.gguf models/qwen3.6-35b/
+mv mmprojs/mmproj-Qwen3.6-*.gguf models/qwen3.6-35b/mmproj-f16.gguf
+```
+
+迁移后可以清理 `model-profiles.json` 中对应的 `mmproj.matches` 条目（但保留 `profiles` 段作为全局后备也无妨）。
+
+建议迁移的模型：
+- ✅ 有多量化版本的模型系列（如 Qwen3.5、Qwen3.6）
+- ✅ 需要 mmproj 的多模态模型
+- ✅ 需要特殊参数配置的模型（如 Gemma-4）
+- ❌ 不常用的实验性模型可以保持平铺
+
+### 配置优先级
+
+配置文件加载顺序（高 → 低）：
+
+1. **包内 `_profile.json`**（最高优先级，只对该包生效）
+2. **全局 `model-profiles.json` 的 `profiles` 段**（对所有模型生效）
+3. **系统默认值**
 
 ### llama 相关资源
 
@@ -366,23 +479,23 @@ llama-server 支持多模态模型，可以识别和分析图像内容。目前�
 
 > **注意**: 模型文件和 mmproj 文件需要匹配使用，通常在同一模型发布页面提供。
 
-> ⚠️ **重要提示：mmproj 文件命名冲突问题**
+> ⚠️ **以前：mmproj 文件命名冲突问题（已解决）**
 >
-> 从 Hugging Face 下载多模态投影文件时请注意：
-> - **不同大小的模型可能使用相同文件名的 mmproj 文件**（例如多个不同版本都叫 `mmproj-F16.gguf`）
-> - **这些文件虽然名字相同，但内容不同，不能通用混用**
-> - 下载后请**重命名 mmproj 文件**，添加模型系列或版本标识，避免冲突
+> 旧方案将所有 mmproj 文件放在全局 `mmprojs/` 目录，不同模型系列的同名文件会冲突，
+> 需要手动重命名 + 编辑 `model-profiles.json` 配置映射。
 >
-> **推荐命名格式**:
+> **✅ 新方案：使用模型包（推荐）**
+>
+> 将 mmproj 文件直接放在模型包目录中，无需重命名、无需配置：
+>
 > ```
-> mmproj-<模型系列>-<精度>.gguf
+> models/qwen3.5-35b/                  ← 模型包目录
+> ├── Q4_K_M.gguf                      ← 模型文件
+> ├── mmproj-f16.gguf                  ← 投影文件（包内，命名随意）
+> └── _profile.json                    ← 可选：模型参数
 > ```
 >
-> **示例**:
-> - `mmproj-Qwen2-VL-f16.gguf`（用于 Qwen2-VL 系列）
-> - `mmproj-Qwen3.5-f16.gguf`（用于 Qwen3.5 系列）
-> - `FireRed-OCR.mmproj-f16.gguf`（用于 FireRed OCR）
-> - `mmproj-llava-f16.gguf`（用于 LLaVA 系列）
+> **仍然支持全局** `mmprojs/` **目录**用于平铺模型，但不推荐用于新模型。
 >
 > 然后在 `model-profiles.json` 配置文件中建立模型与 mmproj 的映射关系（见下文）。
 
@@ -448,19 +561,18 @@ gguf-run -m <model>.gguf -j <mmproj>.gguf --cache-type-k q8_0 --no-mmap
 
 ### 自动匹配规则
 
-工具会自动根据模型文件名匹配对应的 mmproj 文件，匹配优先级：
+工具会自动根据模型上下文匹配对应的 mmproj 文件和参数配置，匹配优先级：
 
-1. **配置文件匹配** (最高优先级): 在 `mmproj-matcher.json` 中定义的映射关系
-2. **关键词匹配**: 模型名和 mmproj 文件名包含相同的关键词（如 `Qwen3.5-35B`）
-3. **通用匹配**: 如果没有找到匹配的，且存在通用 mmproj 文件（如 `mmproj-F16.gguf`），则使用通用文件
+1. **包内 mmproj** (最高优先级)：模型在包目录中时，自动使用包内的 mmproj 文件
+2. **包内 _profile.json**：包目录中的 `_profile.json` 自动注入模型参数
+3. **配置文件匹配**：`model-profiles.json` 中的精确映射（用于平铺模型）
+4. **全局 mmprojs/ 手动选择**：无匹配时用户从全局目录手动选择
 
-**匹配成功时**：只显示匹配的 mmproj 文件和 `None` 选项（其他 mmproj 文件不兼容，不显示）
+**匹配成功时**：只显示匹配的 mmproj 文件和 `None` 选项
 
-**匹配失败时**：显示所有 mmproj 文件供用户手动选择（可能需要手动尝试）
+**匹配失败时**：显示所有 mmproj 文件供用户手动选择
 
-### 配置文件 (可选)
-
-本项目使用 `model-profiles.json` 配置文件来管理模型相关的参数映射。该文件包含两部分：
+### 配置文件 (可选，推荐使用模型包替代)
 
 #### 1. mmproj 映射配置
 

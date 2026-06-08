@@ -26,23 +26,20 @@ function getConfigPath() {
  */
 function loadConfig() {
   try {
-    // console.log(`[Config] Checking: ${CONFIG_PATH}`);
+    if (!CONFIG_PATH) return null;
     if (fs.existsSync(CONFIG_PATH)) {
       const configData = fs.readFileSync(CONFIG_PATH, 'utf8');
       const config = JSON.parse(configData);
-      // console.log(`[Config] Loaded successfully, matches:`, Object.keys(config.mmproj?.matches || {}));
       return config;
-    } else {
-      console.log(`[Config] File not found`);
     }
   } catch (error) {
-    console.warn('Warning: Failed to load mmproj-matcher.json:', error.message);
+    console.warn('Warning: Failed to load model-profiles.json:', error.message);
   }
   return null;
 }
 
 /**
- * 扫描 mmprojs 目录下的所有.mmproj 文件
+ * 扫描 mmprojs 目录下的所有投影文件
  * @param {string} dirPath - 目录路径
  * @returns {string[]} mmproj 文件列表
  */
@@ -61,6 +58,59 @@ function scanMmprojFiles(dirPath) {
 }
 
 /**
+ * 获取模型目录中的 mmproj 文件（包内自动发现）
+ * @param {string} modelPath - 模型文件的绝对路径
+ * @returns {string[]} 同目录下的 mmproj 文件列表
+ */
+function getPackageMmprojFiles(modelPath) {
+  const modelDir = path.dirname(modelPath);
+  try {
+    const entries = fs.readdirSync(modelDir);
+    return entries.filter(e => {
+      const ext = path.extname(e).toLowerCase();
+      return ext === '.gguf' && e.toLowerCase().includes('mmproj');
+    }).sort();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 判断模型是否在包目录中
+ * @param {string} modelPath - 模型文件绝对路径
+ * @param {string} modelsDir - models 目录路径
+ * @returns {boolean}
+ */
+function isPackageModel(modelPath, modelsDir) {
+  const modelDir = path.dirname(modelPath);
+  return modelDir !== path.resolve(modelsDir);
+}
+
+/**
+ * 获取包内 _profile.json 配置
+ * @param {string} modelPath - 模型文件绝对路径
+ * @returns {Object|null} { args, thinkingMode } 或 null
+ */
+function getPackageProfile(modelPath) {
+  const modelDir = path.dirname(modelPath);
+  const profilePath = path.join(modelDir, '_profile.json');
+  try {
+    if (fs.existsSync(profilePath)) {
+      const raw = fs.readFileSync(profilePath, 'utf8');
+      const profile = JSON.parse(raw);
+      console.log(`[Package] Loaded profile from ${path.basename(modelDir)}/_profile.json`);
+      return {
+        args: profile.args || {},
+        thinkingMode: profile.thinkingMode || 'chat-template-kwargs'
+      };
+    }
+  } catch (e) {
+    console.warn(`[Package] Failed to load _profile.json: ${e.message}`);
+  }
+  return null;
+}
+
+/**
  * 根据模型文件名自动匹配 mmproj 文件
  * 匹配规则：
  * 1. 优先使用配置文件中的精确映射关系（mmproj -> [modelNames]）
@@ -72,66 +122,66 @@ function scanMmprojFiles(dirPath) {
  */
 function matchMmprojToFile(modelFile, mmprojFiles) {
   if (!mmprojFiles || mmprojFiles.length === 0) {
-    // console.log(`[Match] No mmproj files available`);
     return null;
   }
 
   const modelName = path.basename(modelFile, '.gguf');
-  // console.log(`[Match] Matching model: ${modelName}`);
-  // console.log(`[Match] Available mmproj files:`, mmprojFiles);
 
   // 1. 优先使用配置文件精确匹配
   const config = loadConfig();
   if (config && config.mmproj && config.mmproj.matches) {
-    // 遍历配置中的 mmproj 文件及其对应的模型名称列表
     for (const [mmproj, modelNames] of Object.entries(config.mmproj.matches)) {
-      // 检查 mmproj 文件是否存在于可用列表中
       if (!mmprojFiles.includes(mmproj)) {
         continue;
       }
-      // 精确匹配：检查模型名是否在列表中
       if (modelNames.includes(modelName)) {
         console.log(`✓ Auto-matched: ${modelName} → ${mmproj} (config)`);
-        return mmproj;  // ✅ 配置文件匹配成功，直接返回
+        return mmproj;
       }
     }
   }
 
-  // 2. 没有匹配到，返回 null，让用户手动选择
+  // 2. 没有匹配到，返回 null
   console.log(`✗ No matching mmproj found for: ${modelName} (manual selection required)`);
   return null;
 }
 
 /**
- * 查找通用的 mmproj 文件（已废弃）
- * @param {string[]} mmprojFiles - mmproj 文件列表
- * @returns {string|null} 通用 mmproj 文件名
- */
-function findGenericMmproj(mmprojFiles) {
-  return null;  // 不再自动查找通用文件
-}
-
-/**
- * 获取 mmproj 文件列表和自动匹配结果
- * @param {string} mmprojsDir - mmprojs 目录路径
+ * 获取 mmproj 选项 - 同时支持包模型和平铺模型
+ *
+ * @param {string} mmprojsDir - 全局 mmprojs 目录路径
  * @param {string} modelsDir - models 目录路径（用于查找配置文件）
- * @param {string} modelFile - 模型文件名（可选，用于自动匹配）
- * @returns {Object} { files: string[], matched: string|null }
+ * @param {string} modelFile - 模型文件名（平铺模型匹配用）
+ * @param {Object} [modelInfo] - 模型条目信息（来自 scanModels）
+ * @param {string} [modelInfo.type] - 'package' | 'flat'
+ * @param {string[]} [modelInfo.mmprojFiles] - 包内 mmproj 文件列表
+ * @returns {Object} { files: string[], matched: string|null, fromPackage: boolean }
  */
-function getMmprojOptions(mmprojsDir, modelsDir, modelFile = null) {
-  // 设置配置文件路径
+function getMmprojOptions(mmprojsDir, modelsDir, modelFile = null, modelInfo = null) {
+  // 包模型：mmproj 来自包内
+  if (modelInfo && modelInfo.type === 'package') {
+    const matched = modelInfo.mmprojFiles.length === 1 ? modelInfo.mmprojFiles[0] : null;
+    console.log(`[Package] Package mmproj files: [${modelInfo.mmprojFiles.join(', ')}]`);
+    return {
+      files: modelInfo.mmprojFiles,
+      matched: matched,
+      fromPackage: true
+    };
+  }
+
+  // 平铺模型：传统方式
   setConfigPath(modelsDir);
-  
   const files = scanMmprojFiles(mmprojsDir);
   let matched = null;
-  
+
   if (modelFile && files.length > 0) {
     matched = matchMmprojToFile(modelFile, files);
   }
-  
+
   return {
     files,
-    matched
+    matched,
+    fromPackage: false
   };
 }
 
@@ -139,7 +189,9 @@ module.exports = {
   scanMmprojFiles,
   matchMmprojToFile,
   getMmprojOptions,
-  findGenericMmproj,
+  getPackageMmprojFiles,
+  getPackageProfile,
+  isPackageModel,
   loadConfig,
   setConfigPath,
   getConfigPath
