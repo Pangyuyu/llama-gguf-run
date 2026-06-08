@@ -2,46 +2,20 @@
   "mmproj": {
     "default": "Qwen3.5-35B-A3B-mmproj-F16.gguf",
     "matches": {
-      "Qwen3.5-35B-A3B-mmproj-BF16.gguf": [
-        "Qwen3.5-35B-A3B-Q4_K_M"
-      ],
-      "mmproj-Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf": [
-        "Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_M",
-        "Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_0"
-      ],
       "gemma-4-26B-A4B-it-mmproj-BF16.gguf": [
-        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q4_K_M",
-        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q8_0"
-      ],
-      "mmproj-Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-f16.gguf": [
-        "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P"
+        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q4_K_M"
       ],
       "mmproj-Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-f16.gguf": [
         "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_P"
       ],
-      "mmproj-Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-BF16.gguf": [
-        "Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-Q8_0"
-      ],
       "mmproj-Qwen3.6-35B-A3B-Abliterated-Heretic.gguf": [
-        "Qwen3.6-35B-A3B-Abliterated-Heretic-Q4_K_M"
+        "Qwen3.6-35B-A3B-uncensored-heretic-Q6_K"
       ],
       "mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf": [
-        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_P",
-        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q6_K_P",
-        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_K_P"
-      ],
-      "Qwen3.5-0.8B-mmproj-F32.gguf": [
-        "Qwen3.5-0.8B-UD-Q8_K_XL"
-      ],
-      "mmproj-Qwen3.5-2B-Uncensored-HauhauCS-Aggressive-f16.gguf": [
-        "Qwen3.5-2B-Uncensored-HauhauCS-Aggressive-Q8_0"
-      ],
-      "Qwen3.5-2B-UD-mmproj-F32.gguf": [
-        "Qwen3.5-2B-UD-Q8_K_XL"
+        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q6_K_P"
       ],
       "mmproj-Qwen3.5-9B-Uncensored-DeepSeek-V4-Spectre-BF16.gguf": [
-        "Qwen3.5-9B-Uncensored-DeepSeek-V4-Q4_K_M",
-        "Qwen3.5-9B-Uncensored-DeepSeek-V4-Q8_0"
+        "Qwen3.5-9B-Uncensored-DeepSeek-V4-Q4_K_M"
       ],
       "mmproj-Qwen3.6-35B-A3B-Uncensored.f16.gguf": [
         "Qwen3.6-35B-A3B-Uncensored-Genesis-MXFP4_MOE"
@@ -49,54 +23,85 @@
       "mmproj-MiniCPM-V-4.6-bf16.gguf": [
         "MiniCPM-V-4.6-bf16",
         "MiniCPM-V-4.6-Q4_K_M"
+      ],
+      "G4-MeroMero-26B-A4B-it-uncensored-heretic.mmproj-Q8_0.gguf": [
+        "G4-MeroMero-26B-A4B-it-uncensored-heretic.Q6_K"
+      ],
+      "Qwen3.6-14B-A3B-VibeForged-v2-mmproj-Q8_0.gguf": [
+        "Qwen3.6-14B-A3B-VibeForged-v2-Q6_K"
+      ],
+      "MTP-Huihui-Qwen3.6-35B-A3B-abliterated-mmproj-model-f16.gguf":[
+        "MTP-Huihui-Qwen3.6-35B-A3B-abliterated-ggml-model-Q6_K"
+      ],
+      "mmproj-Qwen3.6-35B-A3B-NVFP4-F16.gguf":[
+        "Qwen3.6-35B-A3B-NVFP4-Q4_K_M"
+      ],
+      "mmproj-google.gemma-4-12B-it.f16.gguf":[
+        "google.gemma-4-12B-it.f16.gguf.Q4_K_M"
       ]
     }
   },
   "profiles": {
-    "gemma-4-e4b-uncensored": {
+    "G4-MeroMero": {
       "models": [
-        "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_P",
-        "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P"
+        "G4-MeroMero-26B-A4B-it-uncensored-heretic.Q6_K"
       ],
       "args": {
         "--flash-attn": "on",
         "--fit": "on",
-        "--jinja":"",
-        "--image-min-tokens":"70",
-        "--image-max-tokens":"1120",
-        "--ubatch-size":"1024",
-        "--batch-size":"1024"
+        "--jinja": "",
+        "--image-min-tokens": "70",
+        "--image-max-tokens": "1120",
+        "--ubatch-size": "1024",
+        "--batch-size": "1024"
       },
       "thinkingMode": "reasoning-flag"
     },
-    "gemma-4-e2b-uncensored": {
+    "google.gemma-4": {
       "models": [
-        "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P"
-      ],
-     "args": {
-        "--flash-attn": "on",
-        "--fit": "on",
-        "--jinja":"",
-        "--image-min-tokens":"70",
-        "--image-max-tokens":"1120",
-        "--ubatch-size":"1024",
-        "--batch-size":"1024"
-      },
-      "thinkingMode": "reasoning-flag"
-    },
-    "gemma-4-26b-uncensored": {
-      "models": [
-        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q4_K_M",
-        "gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q8_0"
+        "google.gemma-4-12B-it.f16.gguf.Q4_K_M"
       ],
       "args": {
         "--flash-attn": "on",
         "--fit": "on",
-        "--jinja":"",
-        "--image-min-tokens":"70",
-        "--image-max-tokens":"1120",
-        "--ubatch-size":"1024",
-        "--batch-size":"1024"
+        "--jinja": "",
+        "--no-mmap":"",
+        "--image-min-tokens": "70",
+        "--image-max-tokens": "1120",
+        "--ubatch-size": "1024",
+        "--batch-size": "1024"
+      },
+      "thinkingMode": "reasoning-flag"
+    },
+    "MTP": {
+      "models": [
+        "MTP-Huihui-Qwen3.6-35B-A3B-abliterated-ggml-model-Q6_K"
+      ],
+      "args": {
+        "--flash-attn": "on",
+        "--fit": "on",
+        "--spec-type": "draft-mtp",
+        "--spec-draft-n-max": "2",
+        "--spec-draft-p-min": "0.75",
+        "--image-min-tokens": "70",
+        "--image-max-tokens": "1120",
+        "--ubatch-size": "1024",
+        "--batch-size": "1024"
+      },
+      "thinkingMode": "reasoning-flag"
+    },
+    "Qwen3.6": {
+      "models": [
+        "Qwen3.6-35B-A3B-Uncensored-Genesis-MXFP4_MOE",
+        "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q6_K_P",
+        "Qwen3.6-35B-A3B-uncensored-heretic-Q6_K",
+        "Qwen3.6-14B-A3B-VibeForged-v2-Q6_K"
+      ],
+      "args": {
+        "--flash-attn": "on",
+        "--fit": "on",
+        "--image-min-tokens": "1024",
+        "--image-max-tokens": "2048"
       },
       "thinkingMode": "reasoning-flag"
     }
