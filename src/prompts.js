@@ -75,7 +75,7 @@ function buildPromptQuestions(options, modelEntries, modelsDir) {
       // 包模型：只显示包内的 mmproj 文件
       const choices = ['None'];
       for (const f of pkgMmprojs) {
-        choices.push({ name: `📦 ${f}`, value: f });
+        choices.push({ name: `📦 ${f} (from package)`, value: f });
       }
       return choices;
     }
