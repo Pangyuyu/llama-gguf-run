@@ -9,6 +9,7 @@ const { buildPromptQuestions } = require('../src/prompts');
 const { buildLlamaCommand } = require('../src/builder');
 const { runLlama } = require('../src/runner');
 const { getPackageMmprojFiles } = require('../src/mmproj-matcher');
+const { resolveLogDir } = require('../src/logger');
 
 // CLI 参数定义
 program
@@ -27,6 +28,12 @@ program
   .option('-t, --threads <count>', 'Number of threads to use during computation (default: "1")')
   .option('--gpu-layers-mode <mode>', 'GPU layers mode: auto, calculated, manual', 'auto')
   .option('--gpu-layers <count>', 'Number of GPU layers (for manual mode)', '99')
+  .option('--log', 'Save llama.cpp logs to a local file (standard detail)')
+  .option('--no-log', 'Do not save llama.cpp logs to a local file')
+  .option('--log-verbose', 'Save llama.cpp logs with full debug detail (adds -v to llama.cpp)')
+  .option('--log-dir <dir>', 'Directory for log files (default: "logs")')
+  .option('--log-quiet', 'Log to file but show only key lines (errors/warnings) in the terminal')
+  .option('--log-silent', 'Log to file and hide all llama.cpp output from the terminal')
   .version('1.0.0')
   .action(async (options) => {
     try {
@@ -141,7 +148,16 @@ async function runInteractive(options) {
     extraArgs: answers.extraArgs,
     llamaCommand: answers.llamaCommand,
     enableThinking: options.enableThinking ?? answers.enableThinking,
-    threads: options.threads || answers.threads
+    threads: options.threads || answers.threads,
+    // 本地日志：--no-log 优先，其次命令行/交互选择
+    logMode: options.log === false ? 'off' : (answers.logMode || 'off'),
+    logDir: answers.logDir || options.logDir || 'logs',
+    // 终端回显：命令行显式指定时优先；未开启日志时默认全量回显
+    logEcho: options.logQuiet
+      ? 'quiet'
+      : options.logSilent
+        ? 'silent'
+        : (options.log === false || (answers.logMode || 'off') === 'off' ? 'full' : (answers.logEcho || 'full'))
   };
 
   // 5. 显示完整命令并确认
@@ -150,6 +166,13 @@ async function runInteractive(options) {
   console.log(chalk.dim('\n📝 Command to execute:'));
   if (gpuInfo) {
     console.log(chalk.cyan(`   ${gpuInfo}`));
+  }
+  if (config.logMode !== 'off') {
+    const detail = config.logMode === 'verbose' ? 'Detailed (-v)' : 'Standard';
+    const echoLabel = { full: '终端完整回显', quiet: '终端仅关键行', silent: '终端静默' }[config.logEcho];
+    console.log(chalk.cyan(`   📄 Logs: ${resolveLogDir(config.logDir)} (${detail}, ${echoLabel})`));
+  } else if (config.logEcho !== 'full') {
+    console.log(chalk.cyan(`   🔇 终端${config.logEcho === 'quiet' ? '仅显示关键行' : '静默'}（未开启日志文件）`));
   }
   console.log(chalk.green(command));
 

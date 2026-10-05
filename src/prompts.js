@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { getMmprojOptions, matchMmprojToFile, getPackageMmprojFiles, isPackageModel } = require('./mmproj-matcher');
 const { calculateRecommendedLayers, getGPULayersModeOptions } = require('./gpu-estimator');
+const { getHostChoices, getDefaultHostIndex } = require('./network');
 
 /**
  * 构建交互式提示问题列表
@@ -171,16 +172,14 @@ function buildPromptQuestions(options, modelEntries, modelsDir) {
     }
   });
 
-  // Host
+  // Host（枚举本机网卡地址，便于虚拟机/局域网访问）
+  const hostChoices = getHostChoices(options.host);
   questions.push({
     type: 'list',
     name: 'host',
     message: 'Server host:',
-    choices: [
-      { name: '127.0.0.1 (localhost only)', value: '127.0.0.1' },
-      { name: '0.0.0.0 (allow external connections)', value: '0.0.0.0' }
-    ],
-    default: options.host ? (options.host === '0.0.0.0' ? 1 : 0) : 0
+    choices: hostChoices,
+    default: getDefaultHostIndex(hostChoices, options.host)
   });
 
   // Port
@@ -233,7 +232,7 @@ function buildPromptQuestions(options, modelEntries, modelsDir) {
     type: 'input',
     name: 'threads',
     message: 'Number of threads:',
-    default: options.threads || '6',
+    default: options.threads || '12',
     validate: (input) => {
       const num = parseInt(input);
       if (isNaN(num) || num < 1) {
@@ -281,6 +280,61 @@ function buildPromptQuestions(options, modelEntries, modelsDir) {
     message: 'Additional llama arguments (optional):',
     default: options.extraArgs || '-b 1024 -ub 128 -fa auto',
     suffix: chalk.dim(' (e.g., --n-gpu-layers 35)\n    \x1b[90mFor image support with Cherry Studio: --cache-type-k q8_0 --no-mmap\x1b[0m')
+  });
+
+  // 本地日志记录（是否把 llama.cpp 日志落盘）
+  questions.push({
+    type: 'list',
+    name: 'logMode',
+    message: 'Record llama.cpp logs to a local file?',
+    choices: [
+      { name: 'Off      - 不记录日志', value: 'off', description: '仅在终端显示输出' },
+      { name: 'Standard - 把 llama.cpp 输出保存到本地日志文件', value: 'standard', description: '终端显示的内容同步写入日志文件，便于事后排查' },
+      { name: 'Detailed - 保存完整调试信息（附加 -v）', value: 'verbose', description: '记录全部调试级别消息，最适合定位加载/崩溃问题' }
+    ],
+    default: (() => {
+      if (options.log === false) return 'off';
+      if (options.logVerbose) return 'verbose';
+      if (options.log) return 'standard';
+      return 'off';
+    })(),
+    when: () => options.log !== false,
+    suffix: chalk.dim(` (saved to ${options.logDir || 'logs'}/llama-<时间>-<模型>.log)`)
+  });
+
+  // 终端回显级别（仅在启用日志时询问）
+  questions.push({
+    type: 'list',
+    name: 'logEcho',
+    message: 'Terminal output while logging:',
+    choices: [
+      { name: 'Full    - 终端显示完整输出（与日志文件内容相同）', value: 'full', description: '和以前一样，输出会占满终端' },
+      { name: 'Quiet   - 不刷屏：终端只显示错误/警告/启动等关键行', value: 'quiet', description: '完整日志仍然写入文件，推荐用于长时间挂机运行' },
+      { name: 'Silent  - 终端完全不显示 llama 输出', value: 'silent', description: '仅写日志文件，终端只有本工具的提示' }
+    ],
+    default: (() => {
+      if (options.logQuiet) return 'quiet';
+      if (options.logSilent) return 'silent';
+      return 'full';
+    })(),
+    when: (answers) => Boolean(answers.logMode) && answers.logMode !== 'off' && !options.logQuiet && !options.logSilent,
+    suffix: chalk.dim(' (Quiet = 详细日志落盘但不刷屏)')
+  });
+
+  // 日志目录（仅在启用日志时询问）
+  questions.push({
+    type: 'input',
+    name: 'logDir',
+    message: 'Log directory:',
+    default: options.logDir || 'logs',
+    when: (answers) => Boolean(answers.logMode) && answers.logMode !== 'off' && !options.logDir,
+    validate: (input) => {
+      if (!input || !input.trim()) {
+        return 'Please enter a valid directory path';
+      }
+      return true;
+    },
+    suffix: chalk.dim(' (relative to current working directory)')
   });
 
   // 思考模式 (enable_thinking)

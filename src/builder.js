@@ -79,6 +79,20 @@ function loadModelProfile(modelPath) {
   }
 }
 
+/** 与模型同目录时自动启用的自定义聊天模板文件名 */
+const CHAT_TEMPLATE_FILENAME = 'huatuo_chat_template.jinja';
+
+/**
+ * 查找与模型文件同目录的自定义聊天模板
+ * @param {string} modelPath - 模型文件路径
+ * @returns {string|null} 模板文件绝对路径，未找到返回 null
+ */
+function findChatTemplateFile(modelPath) {
+  if (!modelPath) return null;
+  const templatePath = path.join(path.dirname(modelPath), CHAT_TEMPLATE_FILENAME);
+  return fs.existsSync(templatePath) ? templatePath : null;
+}
+
 /**
  * 构建 llama 命令字符串
  * @param {Object} config - 配置对象
@@ -95,6 +109,7 @@ function loadModelProfile(modelPath) {
  * @param {string} config.threads - 线程数 (默认 1)
  * @param {string} config.gpuLayersMode - GPU 层数模式：'auto', 'calculated', 'manual'
  * @param {number} config.gpuLayers - GPU 层数（手动模式）
+ * @param {string} config.logMode - 本地日志模式：'off' | 'standard' | 'verbose'（verbose 时追加 -v）
  * @returns {Promise<Object>} {command: string, gpuInfo: string}
  */
 async function buildLlamaCommand(config) {
@@ -103,7 +118,7 @@ async function buildLlamaCommand(config) {
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
   const gpuLayersMode = config.gpuLayersMode || 'auto';
-  const threads = config.threads || '6';
+  const threads = config.threads || '12';
 
   // 基础命令
   let command = llamaCmd;
@@ -116,13 +131,20 @@ async function buildLlamaCommand(config) {
   command += ` --temp ${config.temp}`;
   command += ` --top-p ${config.topP}`;
   command += ` --threads ${threads}`;
+  // command += ` -ncmoe 99`;
 
   // 多模态投影文件 (如果提供)
   if (config.mmproj) {
     command += ` --mmproj "${config.mmproj}"`;
     // 启用多模态支持
-    command += ` --no-mmap`;  // 禁用内存映射，提高多模态性能
+    // command += ` --no-mmap`;  // 禁用内存映射，提高多模态性能
     command += ` --cache-type-k q8_0`;  // 使用 8 位量化缓存，减少显存使用
+  }
+
+  // 自定义聊天模板：模型同目录存在 huatuo_chat_template.jinja 时自动启用
+  const chatTemplateFile = findChatTemplateFile(modelPath);
+  if (chatTemplateFile && !(config.extraArgs || '').includes('--chat-template-file')) {
+    command += ` --jinja --chat-template-file "${chatTemplateFile}"`;
   }
 
   // 固定参数 (本机使用)
@@ -131,6 +153,11 @@ async function buildLlamaCommand(config) {
   // 思考模式 (全部使用 --reasoning, 取代旧的 --chat-template-kwargs)
   const enableThinkingVal = enableThinking ? 'on' : 'off';
   command += ` --reasoning ${enableThinkingVal}`;
+
+  // 详细日志模式：让 llama.cpp 输出完整调试信息（由 runner 落盘到本地日志文件）
+  if (config.logMode === 'verbose') {
+    command += ` -v`;
+  }
 
   // 处理 GPU 层数
   let nglValue = '';
@@ -209,7 +236,7 @@ async function buildLlamaArgs(config) {
   // 多模态投影文件 (如果提供)
   if (config.mmproj) {
     args.push('--mmproj', config.mmproj);
-    args.push('--no-mmap');  // 禁用内存映射，提高多模态性能
+    // args.push('--no-mmap');  // 禁用内存映射，提高多模态性能
     // 添加多模态支持参数
     args.push('--cache-type-k', 'q8_0');  // 使用 8 位量化缓存，减少显存使用
   }
@@ -220,6 +247,11 @@ async function buildLlamaArgs(config) {
   // 思考模式 (全部使用 --reasoning, 取代旧的 --chat-template-kwargs)
   const reasoningValue = enableThinking ? 'on' : 'off';
   args.push('--reasoning', reasoningValue);
+
+  // 详细日志模式：让 llama.cpp 输出完整调试信息（由 runner 落盘到本地日志文件）
+  if (config.logMode === 'verbose') {
+    args.push('-v');
+  }
 
   // 处理 GPU 层数
   let nglValue = '';
@@ -269,15 +301,24 @@ async function buildLlamaArgs(config) {
 
   // 加载并应用 model profile args (特殊参数如 --flash-attn, --jinja 等)
   const profile = loadModelProfile(modelPath);
-  if (profile && profile.args) {
-    for (const [key, value] of Object.entries(profile.args)) {
-      if (value === '') {
-        // 空字符串视为纯标志参数（如 --jinja）
-        args.push(key);
-      } else {
-        args.push(key, value);
-      }
+  const profileArgs = (profile && profile.args) ? profile.args : {};
+  for (const [key, value] of Object.entries(profileArgs)) {
+    if (value === '') {
+      // 空字符串视为纯标志参数（如 --jinja）
+      args.push(key);
+    } else {
+      args.push(key, value);
     }
+  }
+
+  // 自定义聊天模板：模型同目录存在 huatuo_chat_template.jinja 时自动启用
+  // （--jinja 需在 --chat-template-file 之前，以便加载非内置模板）
+  const chatTemplateFile = findChatTemplateFile(modelPath);
+  const hasChatTemplateArg =
+    Object.prototype.hasOwnProperty.call(profileArgs, '--chat-template-file') ||
+    (config.extraArgs || '').includes('--chat-template-file');
+  if (chatTemplateFile && !hasChatTemplateArg) {
+    args.push('--jinja', '--chat-template-file', chatTemplateFile);
   }
 
   return {

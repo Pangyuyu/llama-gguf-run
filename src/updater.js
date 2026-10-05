@@ -7,7 +7,11 @@ const AdmZip = require('adm-zip');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
 // 配置
-const GITHUB_API = 'https://api.github.com/repos/ggml-org/llama.cpp/releases/latest';
+// 注意：llama.cpp 现在同时发布两套版本号：
+//  - vX.Y.Z 稳定版（/releases/latest 指向它），只含 nightly-tag.txt，没有预编译二进制
+//  - b#### 夜间构建（prerelease），包含所有平台的预编译二进制
+// 因此这里改用 /releases 列表，找到最近一个包含 CUDA x64 Windows 二进制的版本
+const GITHUB_API = 'https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=100';
 // 支持多种命名格式（按优先级排序）
 const ZIP_FILE_PATTERNS = [
   /^llama-.*-bin-win-cuda-12.*x64\.zip$/i,    // 完整 llama.cpp 二进制（优先）
@@ -27,7 +31,8 @@ function getProxyConfig() {
 }
 
 /**
- * 获取 GitHub 最新 release 版本信息
+ * 获取 GitHub 最近一个包含 CUDA x64 Windows 二进制的 release 版本信息
+ * （llama.cpp 的稳定版 vX.Y.Z 不含预编译二进制，预编译二进制在 b#### 夜间构建中）
  * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, assetName: string}>}
  */
 async function getLatestReleaseInfo() {
@@ -70,31 +75,52 @@ async function getLatestReleaseInfo() {
     };
 
     fetchWithRedirect(GITHUB_API)
-      .then((release) => {
-        if (!release.assets || !Array.isArray(release.assets)) {
-          reject(new Error('Invalid release data from GitHub API'));
+      .then((releases) => {
+        if (!Array.isArray(releases)) {
+          reject(new Error('Invalid releases data from GitHub API'));
           return;
         }
 
-        // 查找 CUDA 12 的 Windows 资源 - 按模式优先级查找
-        let asset = null;
-        for (const pattern of ZIP_FILE_PATTERNS) {
-          asset = release.assets.find(a => pattern.test(a.name));
-          if (asset) break;
-        }
-
-        if (!asset) {
-          const availableAssets = release.assets.map(a => a.name).filter(n => n.toLowerCase().includes('cuda'));
-          reject(new Error(`Could not find CUDA 12 x64 binary in release ${release.tag_name}.\nAvailable CUDA assets: ${availableAssets.slice(0, 5).join(', ')}...`));
-          return;
-        }
-
-        resolve({
-          version: release.tag_name,
-          downloadUrl: asset.browser_download_url,
-          publishedAt: release.published_at,
-          assetName: asset.name
+        // 按发布时间倒序（列表默认已按创建时间倒序，这里再确保顺序正确）
+        const sorted = releases.slice().sort((a, b) => {
+          return new Date(b.published_at) - new Date(a.published_at);
         });
+
+        // 遍历 releases，找到第一个包含 CUDA x64 Windows 二进制的版本（通常是 b#### 夜间构建）
+        for (const release of sorted) {
+          if (!release.assets || !Array.isArray(release.assets)) {
+            continue;
+          }
+
+          let asset = null;
+          for (const pattern of ZIP_FILE_PATTERNS) {
+            asset = release.assets.find(a => pattern.test(a.name));
+            if (asset) break;
+          }
+
+          if (asset) {
+            resolve({
+              version: release.tag_name,
+              downloadUrl: asset.browser_download_url,
+              publishedAt: release.published_at,
+              assetName: asset.name
+            });
+            return;
+          }
+        }
+
+        // 都没有找到，给出错误信息
+        const availableAssets = [];
+        for (const release of releases) {
+          if (release.assets) {
+            for (const a of release.assets) {
+              if (a.name && a.name.toLowerCase().includes('cuda')) {
+                availableAssets.push(`${release.tag_name}: ${a.name}`);
+              }
+            }
+          }
+        }
+        reject(new Error(`Could not find a release with CUDA 12 x64 Windows binaries.\nAvailable CUDA assets (first 10): ${availableAssets.slice(0, 10).join(', ')}...`));
       })
       .catch((error) => {
         reject(error);

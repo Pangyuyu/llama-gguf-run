@@ -1,19 +1,7 @@
 {
   "mmproj": {
     "matches": {
-      "mmproj-Qwen3.6-35B-A3B-Abliterated-Heretic.gguf": [
-        "Qwen3.6-35B-A3B-uncensored-heretic-Q6_K"
-      ],
-      "mmproj-Qwen3.6-35B-A3B-Uncensored.f16.gguf": [
-        "Qwen3.6-35B-A3B-Uncensored-Genesis-MXFP4_MOE"
-      ],
-      "Qwen3.6-35B-A3B-mmproj-uncensored-heretic-BF16.gguf": [
-        "Qwen3.6-35B-A3B-uncensored-heretic-Q6_K"
-      ],
-      "mmproj-MiniCPM-V-4.6-bf16.gguf": [
-        "MiniCPM-V-4.6-bf16",
-        "MiniCPM-V-4.6-Q4_K_M"
-      ]
+     
     }
   },
   "profiles": {}
