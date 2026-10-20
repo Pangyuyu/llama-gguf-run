@@ -3,45 +3,94 @@ const fs = require('fs');
 const { calculateRecommendedLayers, estimateFromFileName } = require('./gpu-estimator');
 
 /**
- * 从配置文件加载 model profiles
+ * 从配置文件加载 model profile 的 args
+ *
+ * 优先级：
+ * 1. 包内 _profile.json（模型在包目录中时）
+ * 2. 全局 model-profiles.json 的 profiles 段
+ *
  * @param {string} modelPath - 模型文件路径
- * @returns {Object|null} 匹配到的 profile {args, thinkingMode}，如果没有匹配则返回 null
+ * @returns {Object|null} 匹配到的 profile args，如果没有匹配则返回 null
  */
 function loadModelProfile(modelPath) {
+  const modelName = path.basename(modelPath, '.gguf');
+
+  // 优先级 1：检查包内 _profile.json
+  const modelDir = path.dirname(modelPath);
+  const packageProfilePath = path.join(modelDir, '_profile.json');
   try {
-    const modelName = path.basename(modelPath, '.gguf');
-    const configDir = path.dirname(path.dirname(modelPath));
-    const configPath = path.join(configDir, 'model-profiles.json');
-    
-    if (!fs.existsSync(configPath)) {
+    if (fs.existsSync(packageProfilePath)) {
+      const raw = fs.readFileSync(packageProfilePath, 'utf8');
+      const pkgProfile = JSON.parse(raw);
+      const pkgName = path.basename(modelDir);
+      console.log(`[Profile] Matched (package): ${modelName} → ${pkgName}/_profile.json`);
+      return {
+        args: pkgProfile.args || {}
+      };
+    }
+  } catch (error) {
+    console.warn(`[Profile] Failed to load package profile: ${error.message}`);
+  }
+
+  // 优先级 2：全局 model-profiles.json
+  try {
+    // 向上查找 model-profiles.json（兼容包目录和平铺模型）
+    let searchDir = path.dirname(modelPath);
+    let configPath = null;
+    let maxDepth = 10;
+    while (maxDepth-- > 0) {
+      const candidate = path.join(searchDir, 'model-profiles.json');
+      if (fs.existsSync(candidate)) {
+        configPath = candidate;
+        break;
+      }
+      const parent = path.dirname(searchDir);
+      if (parent === searchDir) break;
+      searchDir = parent;
+    }
+
+    if (!configPath) {
       return null;
     }
-    
+
     const configData = fs.readFileSync(configPath, 'utf8');
     const config = JSON.parse(configData);
-    
+
     if (!config.profiles) {
       return null;
     }
-    
+
     // 遍历所有 profiles，查找精确匹配的模型
     for (const [profileName, profile] of Object.entries(config.profiles)) {
       if (profile.models && Array.isArray(profile.models)) {
         if (profile.models.includes(modelName)) {
-          console.log(`[Profile] Matched: ${modelName} → ${profileName}`);
+          console.log(`[Profile] Matched (global): ${modelName} → ${profileName}`);
           return {
-            args: profile.args || {},
-            thinkingMode: profile.thinkingMode || 'chat-template-kwargs'
+            args: profile.args || {}
           };
         }
       }
     }
-    
+
     return null;
   } catch (error) {
     console.warn(`[Profile] Failed to load model profiles: ${error.message}`);
     return null;
   }
+}
+
+/** 与模型同目录时自动启用的自定义聊天模板文件名 */
+const CHAT_TEMPLATE_FILENAME = 'huatuo_chat_template.jinja';
+
+/**
+ * 查找与模型文件同目录的自定义聊天模板
+ * @param {string} modelPath - 模型文件路径
+ * @returns {string|null} 模板文件绝对路径，未找到返回 null
+ */
+function findChatTemplateFile(modelPath) {
+  if (!modelPath) return null;
+  const templatePath = path.join(path.dirname(modelPath), CHAT_TEMPLATE_FILENAME);
+  return fs.existsSync(templatePath) ? templatePath : null;
 }
 
 /**
@@ -60,6 +109,7 @@ function loadModelProfile(modelPath) {
  * @param {string} config.threads - 线程数 (默认 1)
  * @param {string} config.gpuLayersMode - GPU 层数模式：'auto', 'calculated', 'manual'
  * @param {number} config.gpuLayers - GPU 层数（手动模式）
+ * @param {string} config.logMode - 本地日志模式：'off' | 'standard' | 'verbose'（verbose 时追加 -v）
  * @returns {Promise<Object>} {command: string, gpuInfo: string}
  */
 async function buildLlamaCommand(config) {
@@ -68,7 +118,7 @@ async function buildLlamaCommand(config) {
   const llamaCmd = config.llamaCommand || 'llama-server';
   const enableThinking = config.enableThinking !== undefined ? config.enableThinking : true;
   const gpuLayersMode = config.gpuLayersMode || 'auto';
-  const threads = config.threads || '6';
+  const threads = config.threads || '12';
 
   // 基础命令
   let command = llamaCmd;
@@ -81,37 +131,32 @@ async function buildLlamaCommand(config) {
   command += ` --temp ${config.temp}`;
   command += ` --top-p ${config.topP}`;
   command += ` --threads ${threads}`;
+  // command += ` -ncmoe 99`;
 
   // 多模态投影文件 (如果提供)
   if (config.mmproj) {
     command += ` --mmproj "${config.mmproj}"`;
     // 启用多模态支持
-    command += ` --no-mmap`;  // 禁用内存映射，提高多模态性能
+    // command += ` --no-mmap`;  // 禁用内存映射，提高多模态性能
     command += ` --cache-type-k q8_0`;  // 使用 8 位量化缓存，减少显存使用
+  }
+
+  // 自定义聊天模板：模型同目录存在 huatuo_chat_template.jinja 时自动启用
+  const chatTemplateFile = findChatTemplateFile(modelPath);
+  if (chatTemplateFile && !(config.extraArgs || '').includes('--chat-template-file')) {
+    command += ` --jinja --chat-template-file "${chatTemplateFile}"`;
   }
 
   // 固定参数 (本机使用)
   command += ` -np 1`;
 
-  // 加载 profile 以获取 thinkingMode
-  const profile = loadModelProfile(modelPath);
-  const thinkingMode = profile?.thinkingMode || 'chat-template-kwargs';
+  // 思考模式 (全部使用 --reasoning, 取代旧的 --chat-template-kwargs)
+  const enableThinkingVal = enableThinking ? 'on' : 'off';
+  command += ` --reasoning ${enableThinkingVal}`;
 
-  // 根据 thinkingMode 决定 thinking 参数的传递方式
-  if (thinkingMode === 'reasoning-flag') {
-    // 使用 --reasoning on/off
-    if (enableThinking) {
-      command += ` --reasoning on`;
-    } else {
-      command += ` --reasoning off`;
-    }
-  } else {
-    // 默认：使用 --chat-template-kwargs
-    if (enableThinking) {
-      command += ` --chat-template-kwargs '{"enable_thinking": true, "preserve_thinking": true}'`;
-    } else {
-      command += ` --chat-template-kwargs '{"enable_thinking": false}'`;
-    }
+  // 详细日志模式：让 llama.cpp 输出完整调试信息（由 runner 落盘到本地日志文件）
+  if (config.logMode === 'verbose') {
+    command += ` -v`;
   }
 
   // 处理 GPU 层数
@@ -191,7 +236,7 @@ async function buildLlamaArgs(config) {
   // 多模态投影文件 (如果提供)
   if (config.mmproj) {
     args.push('--mmproj', config.mmproj);
-    args.push('--no-mmap');  // 禁用内存映射，提高多模态性能
+    // args.push('--no-mmap');  // 禁用内存映射，提高多模态性能
     // 添加多模态支持参数
     args.push('--cache-type-k', 'q8_0');  // 使用 8 位量化缓存，减少显存使用
   }
@@ -199,22 +244,13 @@ async function buildLlamaArgs(config) {
   // 固定参数 (本机使用)
   args.push('-np', '1');
 
-  // 加载 profile 以获取 thinkingMode
-  const profile = loadModelProfile(modelPath);
-  const thinkingMode = profile?.thinkingMode || 'chat-template-kwargs';
+  // 思考模式 (全部使用 --reasoning, 取代旧的 --chat-template-kwargs)
+  const reasoningValue = enableThinking ? 'on' : 'off';
+  args.push('--reasoning', reasoningValue);
 
-  // 根据 thinkingMode 决定 thinking 参数的传递方式
-  if (thinkingMode === 'reasoning-flag') {
-    // 使用 --reasoning on/off
-    const reasoningValue = enableThinking ? 'on' : 'off';
-    args.push('--reasoning', reasoningValue);
-  } else {
-    // 默认：使用 --chat-template-kwargs
-    if (enableThinking) {
-      args.push('--chat-template-kwargs', '{"enable_thinking": true, "preserve_thinking": true}');
-    } else {
-      args.push('--chat-template-kwargs', '{"enable_thinking": false}');
-    }
+  // 详细日志模式：让 llama.cpp 输出完整调试信息（由 runner 落盘到本地日志文件）
+  if (config.logMode === 'verbose') {
+    args.push('-v');
   }
 
   // 处理 GPU 层数
@@ -263,16 +299,26 @@ async function buildLlamaArgs(config) {
     }
   }
 
-  // 加载并应用 model profile args
-  if (profile && profile.args) {
-    for (const [key, value] of Object.entries(profile.args)) {
-      if (value === '') {
-        // 空字符串视为纯标志参数（如 --jinja）
-        args.push(key);
-      } else {
-        args.push(key, value);
-      }
+  // 加载并应用 model profile args (特殊参数如 --flash-attn, --jinja 等)
+  const profile = loadModelProfile(modelPath);
+  const profileArgs = (profile && profile.args) ? profile.args : {};
+  for (const [key, value] of Object.entries(profileArgs)) {
+    if (value === '') {
+      // 空字符串视为纯标志参数（如 --jinja）
+      args.push(key);
+    } else {
+      args.push(key, value);
     }
+  }
+
+  // 自定义聊天模板：模型同目录存在 huatuo_chat_template.jinja 时自动启用
+  // （--jinja 需在 --chat-template-file 之前，以便加载非内置模板）
+  const chatTemplateFile = findChatTemplateFile(modelPath);
+  const hasChatTemplateArg =
+    Object.prototype.hasOwnProperty.call(profileArgs, '--chat-template-file') ||
+    (config.extraArgs || '').includes('--chat-template-file');
+  if (chatTemplateFile && !hasChatTemplateArg) {
+    args.push('--jinja', '--chat-template-file', chatTemplateFile);
   }
 
   return {

@@ -21,7 +21,9 @@ program
   .name('gguf')
   .description('🦙 GGUF Model Runner - 统一的命令行入口')
   .version('1.0.0')
-  .option('-m, --menu', '显示交互菜单', false);
+  .option('-m, --menu', '显示交互菜单', false)
+  // 允许未声明参数透传给子命令，例如：gguf run --log --log-dir logs
+  .allowUnknownOption(true);
 
 // 主菜单
 async function showMainMenu() {

@@ -5,3 +5,5 @@ mmprojs/
 !mmproj-matcher.json
 prism-llama-cuda
 .qwen/
+models-back/
+logs/
